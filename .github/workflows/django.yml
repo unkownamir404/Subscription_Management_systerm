@@ -27,4 +27,4 @@ jobs:
     - name: Run Tests
       run: |
         python manage.py check
-        python manage.py test
+        python manage.py test apps.accounts apps.catalog apps.portal apps.reports apps.subscriptions apps.billing

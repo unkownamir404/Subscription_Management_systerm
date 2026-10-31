@@ -211,7 +211,7 @@
         </div>
 
         <!-- Detailed Item Breakdown (if available from A6 view) -->
-        {% if items or run_obj.items.all %}
+        {% if items %}
           <div class="mt-4">
             <h6 class="fw-bold text-dark mb-2">Processed Items Breakdown</h6>
             <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
@@ -225,7 +225,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for item in items|default:run_obj.items.all %}
+                  {% for item in items %}
                     <tr>
                       <td class="ps-2 fw-medium">#{{ item.subscription.number }}</td>
                       <td>
