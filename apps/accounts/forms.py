@@ -74,6 +74,26 @@ class SignupForm(forms.Form):
                 name=name,
                 company=company,
             )
+
+            def _send_welcome(to_email=email, user_name=name):
+                try:
+                    from django.core.mail import send_mail
+                    send_mail(
+                        subject="Welcome to Brightloop!",
+                        message=(
+                            f"Hello {user_name},\n\n"
+                            f"Welcome to Brightloop Subscription Management System! Your account is active.\n"
+                            f"Log in to your customer portal anytime at: http://127.0.0.1:8000/portal/\n\n"
+                            f"Best regards,\nBrightloop Team"
+                        ),
+                        from_email=None,
+                        recipient_list=[to_email],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
+            transaction.on_commit(_send_welcome)
+
         return user
 
 

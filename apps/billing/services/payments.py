@@ -61,4 +61,25 @@ def record_payment(
             update_fields.append("status")
         inv.save(update_fields=update_fields)
 
+        recipient = getattr(getattr(inv.customer, "user", None), "email", None)
+        if recipient:
+            def _send_payment_receipt(email=recipient, inv_num=(inv.number or str(inv.id)), amt=amount, stat=inv.status, meth=payment.get_method_display(), dt=paid_on):
+                try:
+                    from django.core.mail import send_mail
+                    send_mail(
+                        subject=f"Brightloop Payment Confirmation: Invoice #{inv_num}",
+                        message=(
+                            f"Hello {inv.customer.name},\n\n"
+                            f"We have received your payment of ₹ {amt} via {meth} on {dt}.\n"
+                            f"Invoice #{inv_num} status is now: {stat.upper()}.\n\n"
+                            f"Thank you for your business,\nBrightloop Team"
+                        ),
+                        from_email=None,
+                        recipient_list=[email],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
+            transaction.on_commit(_send_payment_receipt)
+
     return payment

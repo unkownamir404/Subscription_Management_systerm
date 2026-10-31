@@ -277,7 +277,7 @@ def run_lifecycle(as_of: Optional[date] = None) -> dict:
         as_of = timezone.localdate()
 
     from apps.subscriptions.services.lifecycle import auto_close_expired
-    from apps.billing.services.reminders import send_due_reminders
+    from apps.billing.services.reminders import send_due_reminders, send_subscription_lifecycle_reminders
 
     closed_count = auto_close_expired(as_of)
 
@@ -287,10 +287,12 @@ def run_lifecycle(as_of: Optional[date] = None) -> dict:
     ).count()
 
     reminders_sent = send_due_reminders(as_of)
+    sub_reminders_sent = send_subscription_lifecycle_reminders(as_of)
 
     return {
         "as_of": as_of,
         "auto_closed_subscriptions": closed_count,
         "expired_quotations": expired_quotes_count,
         "reminders_sent": reminders_sent,
+        "subscription_reminders_sent": sub_reminders_sent,
     }

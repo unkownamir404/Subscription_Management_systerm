@@ -33,5 +33,6 @@ class Command(BaseCommand):
             f"Lifecycle run complete!\n"
             f"  - Auto-closed expired subscriptions: {result['auto_closed_subscriptions']}\n"
             f"  - Expired quotations identified:    {result['expired_quotations']}\n"
-            f"  - Due reminders dispatched:          {result['reminders_sent']}"
+            f"  - Due reminders dispatched:          {result['reminders_sent']}\n"
+            f"  - Renewal/expiry notices sent:       {result.get('subscription_reminders_sent', 0)}"
         ))

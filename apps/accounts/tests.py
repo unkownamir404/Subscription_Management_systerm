@@ -161,3 +161,54 @@ class AuthFlowTests(TestCase):
         })
         self.assertRedirects(response, reverse("password_reset_done"))
         self.assertEqual(len(mail.outbox), 0)
+
+
+
+class CustomerManagementViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.staff = User.objects.create_user(
+            email="staff_cust@brightloop.test", password="ValidPassword@123", role="staff", is_staff=True
+        )
+        self.cust_user = User.objects.create_user(
+            email="client@brightloop.test", password="ValidPassword@123", role="customer"
+        )
+        self.customer = Customer.objects.create(
+            user=self.cust_user,
+            name="Alpha Corp",
+            company="Alpha Technologies",
+            phone="9876543210",
+            tax_id="GSTIN12345",
+        )
+
+    def test_customer_list_access_staff(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get("/customers/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Alpha Corp")
+
+    def test_customer_list_denied_customer(self):
+        self.client.force_login(self.cust_user)
+        resp = self.client.get("/customers/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_customer_detail_view(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(f"/customers/{self.customer.id}/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Alpha Corp")
+        self.assertContains(resp, "GSTIN12345")
+
+    def test_customer_update_view(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(f"/customers/{self.customer.id}/edit/", {
+            "name": "Alpha Corp Updated",
+            "company": "Alpha Global Inc",
+            "phone": "9998887776",
+            "tax_id": "GSTIN99999",
+            "billing_address": "456 Tech Park",
+        })
+        self.assertRedirects(resp, f"/customers/{self.customer.id}/")
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.name, "Alpha Corp Updated")
+        self.assertEqual(self.customer.company, "Alpha Global Inc")

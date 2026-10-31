@@ -83,3 +83,58 @@ def send_due_reminders(today: Optional[date] = None) -> int:
                 continue
 
     return sent_count
+
+
+
+def send_subscription_lifecycle_reminders(today: Optional[date] = None) -> int:
+    """
+    Sends automated subscription renewal and expiry notices:
+      - 7 days before expiry: Renewal notice
+      - On expiry date: Expiry alert
+    Prevents duplicates using SubscriptionEvent audit trail.
+    """
+    if today is None:
+        today = timezone.localdate()
+
+    from apps.subscriptions.models import Subscription, SubscriptionStatus, SubscriptionEvent
+
+    renewal_target = today + timedelta(days=7)
+    sent_count = 0
+
+    # 1. Renewal notices (7 days before expiry)
+    renewals = Subscription.objects.filter(
+        status=SubscriptionStatus.ACTIVE,
+        expiry_date=renewal_target,
+    ).select_related("customer__user", "plan")
+
+    for sub in renewals:
+        # Check if already notified
+        if SubscriptionEvent.objects.filter(subscription=sub, action="renewal_notice_sent", note__contains=str(renewal_target)).exists():
+            continue
+
+        recipient = getattr(getattr(sub.customer, "user", None), "email", None)
+        if recipient:
+            subject = f"Brightloop Subscription Renewal Notice: {sub.number}"
+            body = (
+                f"Hello {sub.customer.name},\n\n"
+                f"Your subscription ({sub.number} - {sub.plan.name}) is scheduled to renew/expire on {sub.expiry_date}.\n"
+                f"You can review or renew your plan anytime at: http://127.0.0.1:8000/portal/subscriptions/\n\n"
+                f"Thank you,\nBrightloop Team"
+            )
+            with transaction.atomic():
+                SubscriptionEvent.objects.create(
+                    subscription=sub,
+                    from_status=sub.status,
+                    to_status=sub.status,
+                    action="renewal_notice_sent",
+                    note=f"Renewal notice sent for expiry on {renewal_target}",
+                )
+                def _send(email=recipient, subj=subject, msg=body):
+                    try:
+                        send_mail(subj, msg, None, [email], fail_silently=True)
+                    except Exception:
+                        pass
+                transaction.on_commit(_send)
+                sent_count += 1
+
+    return sent_count

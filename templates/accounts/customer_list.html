@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Customers — Brightloop{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+      <h2 class="h3 fw-bold mb-1"><i class="bi bi-people-fill text-primary me-2"></i>Customer Directory</h2>
+      <p class="text-muted small mb-0">Manage customer accounts, billing profiles, and contracts ({{ total_customers }} total).</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="/subscriptions/new/" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle me-1"></i>New Subscription
+      </a>
+    </div>
+  </div>
+
+  <!-- Search Card -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+      <form method="get" action="/customers/" class="row g-2 align-items-center">
+        <div class="col-md-10">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" name="q" value="{{ query }}" class="form-control border-start-0" placeholder="Search by customer name, email, company, phone, or tax ID...">
+          </div>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter me-1"></i>Search</button>
+          {% if query %}
+            <a href="/customers/" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Customer Table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light extra-small text-muted text-uppercase">
+            <tr>
+              <th class="ps-3 py-3">Customer / Company</th>
+              <th>Contact Email</th>
+              <th>Phone</th>
+              <th class="text-center">Active Subs</th>
+              <th class="text-center">Invoices</th>
+              <th>Joined Date</th>
+              <th class="text-end pe-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cust in customers %}
+              <tr>
+                <td class="ps-3 py-3">
+                  <div class="fw-bold">
+                    <a href="/customers/{{ cust.id }}/" class="text-decoration-none text-dark">{{ cust.name }}</a>
+                  </div>
+                  {% if cust.company %}
+                    <small class="text-muted"><i class="bi bi-building me-1"></i>{{ cust.company }}</small>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if cust.user %}
+                    <span class="small">{{ cust.user.email }}</span>
+                  {% else %}
+                    <span class="text-muted small">&mdash;</span>
+                  {% endif %}
+                </td>
+                <td class="small text-muted">{{ cust.phone|default:"—" }}</td>
+                <td class="text-center">
+                  {% if cust.active_subs_count > 0 %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                      {{ cust.active_subs_count }} Active
+                    </span>
+                  {% else %}
+                    <span class="badge bg-light text-muted border px-2 py-1">0</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-light text-secondary border px-2 py-1">{{ cust.total_invoices_count }}</span>
+                </td>
+                <td class="small text-muted">{{ cust.created_at|date:"d M Y" }}</td>
+                <td class="text-end pe-3">
+                  <div class="btn-group btn-group-sm">
+                    <a href="/customers/{{ cust.id }}/" class="btn btn-outline-primary" title="View Profile">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="/subscriptions/new/?customer={{ cust.id }}" class="btn btn-outline-success" title="New Subscription">
+                      <i class="bi bi-plus-lg"></i>
+                    </a>
+                    <a href="/customers/{{ cust.id }}/edit/" class="btn btn-outline-secondary" title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-5 text-muted">
+                  <i class="bi bi-people display-6 d-block mb-2 opacity-50"></i>
+                  No customers found matching your search.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+      <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center py-3">
+        <span class="small text-muted">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ paginator.count }}</span>
+        <nav aria-label="Page navigation">
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query }}">&laquo; Prev</a></li>
+            {% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query }}">Next &raquo;</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

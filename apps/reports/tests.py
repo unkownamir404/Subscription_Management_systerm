@@ -507,3 +507,34 @@ class InvoiceViewsTestCase(TestCase):
         response = self.client.get(f"/invoices/{self.invoice.number}/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Reconciled (100% Match)")
+
+
+
+class FinancialReportsAndExportTests(TestCase):
+    def setUp(self):
+        from apps.accounts.models import User
+        self.staff = User.objects.create_user(
+            email="staff_rep@brightloop.test", password="ValidPassword@123", role="staff", is_staff=True
+        )
+        self.cust = User.objects.create_user(
+            email="cust_rep@brightloop.test", password="ValidPassword@123", role="customer"
+        )
+
+    def test_financial_summary_view_access(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get("/reports/financial/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Financial & Revenue Reports")
+
+        # Customer denied
+        self.client.force_login(self.cust)
+        resp = self.client.get("/reports/financial/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_export_report_csv(self):
+        self.client.force_login(self.staff)
+        for rtype in ["revenue", "invoices", "subscriptions", "payments"]:
+            resp = self.client.get(f"/reports/export/?type={rtype}")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp["Content-Type"], "text/csv")
+            self.assertIn(f"brightloop_{rtype}_report.csv", resp["Content-Disposition"])
