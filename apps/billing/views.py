@@ -27,7 +27,7 @@ class InvoiceListView(RoleRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = (
-            Invoice.objects.select_related("customer", "subscription")
+            Invoice.objects.select_related("customer", "subscription__plan")
             .order_by("-invoice_date", "-id")
         )
         today = timezone.localdate()
