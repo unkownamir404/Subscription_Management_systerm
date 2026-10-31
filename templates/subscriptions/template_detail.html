@@ -35,7 +35,7 @@
     <div class="card-body p-3">
       <div class="row small">
         <div class="col-sm-4 text-muted">Recurring Plan</div>
-        <div class="col-sm-8 fw-semibold">{{ template.plan.name }} (₹ {{ template.plan.price|money }} / {{ template.plan.interval }})</div>
+        <div class="col-sm-8 fw-semibold">{{ template.plan.name }} ({{ template.plan.price|money }} / {{ template.plan.interval }})</div>
 
         <div class="col-sm-4 text-muted mt-2">Validity Duration</div>
         <div class="col-sm-8 mt-2">{{ template.validity_days }} Days</div>
@@ -63,7 +63,7 @@
                 <td class="ps-3 fw-medium">{{ line.product.name }}</td>
                 <td>
                   {% if line.variant %}
-                    <span class="badge bg-light text-dark border">{{ line.variant.attribute }}: {{ line.variant.value }} (+₹ {{ line.variant.extra_price|money }})</span>
+                    <span class="badge bg-light text-dark border">{{ line.variant.attribute }}: {{ line.variant.value }} (+{{ line.variant.extra_price|money }})</span>
                   {% else %}
                     <span class="text-muted">&mdash;</span>
                   {% endif %}

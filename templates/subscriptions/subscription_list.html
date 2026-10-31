@@ -118,7 +118,7 @@
                   </td>
                   <td>
                     <div class="fw-semibold text-dark">{{ sub.plan.name }}</div>
-                    <div class="extra-small text-muted">₹ {{ sub.plan.price|money }} / {{ sub.plan.interval_count }} {{ sub.plan.interval }}</div>
+                    <div class="extra-small text-muted">{{ sub.plan.price|money }} / {{ sub.plan.interval_count }} {{ sub.plan.interval }}</div>
                   </td>
                   <td>
                     {% include "partials/_status_badge.html" with status=sub.status %}

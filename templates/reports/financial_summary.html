@@ -136,10 +136,10 @@
                     <td class="text-center">
                       <span class="badge bg-light text-secondary border px-2">{{ row.total_invoices }}</span>
                     </td>
-                    <td class="text-end fw-semibold">₹ {{ row.total_billed|money }}</td>
-                    <td class="text-end text-success fw-semibold">₹ {{ row.total_collected|money }}</td>
-                    <td class="text-end text-muted">₹ {{ row.total_discount|money }}</td>
-                    <td class="text-end text-muted">₹ {{ row.total_tax|money }}</td>
+                    <td class="text-end fw-semibold">{{ row.total_billed|money }}</td>
+                    <td class="text-end text-success fw-semibold">{{ row.total_collected|money }}</td>
+                    <td class="text-end text-muted">{{ row.total_discount|money }}</td>
+                    <td class="text-end text-muted">{{ row.total_tax|money }}</td>
                     <td class="text-end pe-3">
                       {% if row.total_billed > 0 %}
                         {% widthratio row.total_collected row.total_billed 100 as pct %}

@@ -26,7 +26,7 @@
         {% endif %}
       </div>
       <p class="text-muted small mb-0 mt-1">
-        Customer: <strong>{{ subscription.customer.name }}</strong> &bull; Plan: <strong>{{ subscription.plan.name }}</strong> (₹ {{ subscription.plan.price|money }} / {{ subscription.plan.interval_count }} {{ subscription.plan.interval }})
+        Customer: <strong>{{ subscription.customer.name }}</strong> &bull; Plan: <strong>{{ subscription.plan.name }}</strong> ({{ subscription.plan.price|money }} / {{ subscription.plan.interval_count }} {{ subscription.plan.interval }})
       </p>
     </div>
 
@@ -225,9 +225,9 @@
                   </td>
                   <td class="text-muted extra-small">&mdash;</td>
                   <td class="text-center font-monospace">1</td>
-                  <td class="text-end font-monospace">₹ {{ subscription.plan.price|money }}</td>
+                  <td class="text-end font-monospace">{{ subscription.plan.price|money }}</td>
                   <td class="text-end font-monospace">18.00%</td>
-                  <td class="text-end font-monospace fw-bold pe-3">₹ {{ subscription.plan.price|money }}</td>
+                  <td class="text-end font-monospace fw-bold pe-3">{{ subscription.plan.price|money }}</td>
                 </tr>
 
                 <!-- Product Lines -->
@@ -240,17 +240,17 @@
                     <td>
                       {% if line.variant %}
                         <span class="badge bg-light text-dark border">
-                          {{ line.variant.attribute }}: {{ line.variant.value }} (+₹ {{ line.variant.extra_price|money }})
+                          {{ line.variant.attribute }}: {{ line.variant.value }} (+{{ line.variant.extra_price|money }})
                         </span>
                       {% else %}
                         <span class="text-muted extra-small">&mdash;</span>
                       {% endif %}
                     </td>
                     <td class="text-center font-monospace">{{ line.quantity }}</td>
-                    <td class="text-end font-monospace">₹ {{ line.unit_price|money }}</td>
+                    <td class="text-end font-monospace">{{ line.unit_price|money }}</td>
                     <td class="text-end font-monospace">{{ line.tax_rate }}%</td>
                     <td class="text-end font-monospace fw-semibold pe-3">
-                      ₹ {{ line.unit_price|money }}
+                      {{ line.unit_price|money }}
                     </td>
                   </tr>
                 {% empty %}
@@ -302,7 +302,7 @@
                         {% include "partials/_status_badge.html" with status=inv.status %}
                       </td>
                       <td class="text-end font-monospace pe-3">
-                        ₹ {{ inv.total|money }}
+                        {{ inv.total|money }}
                       </td>
                     </tr>
                   {% endfor %}
