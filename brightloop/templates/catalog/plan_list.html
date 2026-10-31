@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Plans - Brightloop{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Subscription Plans</h2>
+        <p class="text-muted small mb-0">Define recurring terms, intervals, and lifecycle permissions</p>
+    </div>
+    {% if can_write %}
+    <a href="{% url 'catalog:plan_create' %}" class="btn btn-primary">
+        + Add Plan
+    </a>
+    {% endif %}
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-5">
+                <input type="text" name="q" class="form-control" placeholder="Search by plan name..." value="{{ q }}">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">Search</button>
+                {% if q %}
+                <a href="{% url 'catalog:plan_list' %}" class="btn btn-link text-decoration-none">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if plans %}
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Plan Name</th>
+                    <th>Price &amp; Term</th>
+                    <th>Min Qty</th>
+                    <th>Validity</th>
+                    <th>Lifecycle Permissions</th>
+                    {% if can_write %}
+                    <th class="text-end">Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in plans %}
+                <tr>
+                    <td><span class="fw-bold">{{ plan.name }}</span></td>
+                    <td>
+                        <span class="fw-semibold text-primary">₹{{ plan.price }}</span>
+                        <span class="text-muted small">/ {{ plan.interval_count }} {{ plan.get_interval_display }}</span>
+                    </td>
+                    <td>{{ plan.min_qty }}</td>
+                    <td>
+                        <div class="small">From: {{ plan.valid_from }}</div>
+                        <div class="small text-muted">To: {{ plan.valid_to|default:"Unlimited" }}</div>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% if plan.auto_close %}<span class="badge bg-secondary">Auto Close</span>{% endif %}
+                            {% if plan.allow_early_close %}<span class="badge bg-info text-dark">Early Close</span>{% endif %}
+                            {% if plan.allow_pause %}<span class="badge bg-warning text-dark">Pause</span>{% endif %}
+                            {% if plan.allow_renew %}<span class="badge bg-success">Renew</span>{% endif %}
+                        </div>
+                    </td>
+                    {% if can_write %}
+                    <td class="text-end">
+                        <a href="{% url 'catalog:plan_update' plan.pk %}" class="btn btn-sm btn-outline-primary me-1">Edit</a>
+                        <form method="post" action="{% url 'catalog:plan_delete' plan.pk %}" class="d-inline" onsubmit="return confirm('Delete plan {{ plan.name }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% include "partials/_pagination.html" %}
+
+{% else %}
+{% include "partials/_empty_state.html" with message="No plans found" submessage="Create your first subscription billing plan." %}
+{% endif %}
+{% endblock %}
