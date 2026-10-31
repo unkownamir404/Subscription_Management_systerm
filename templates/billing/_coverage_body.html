@@ -1,0 +1,19 @@
+{% load ui %}
+
+{% if duplicate_count is not None %}
+  {% with dup=duplicate_count %}
+    {% include "billing/_coverage_content.html" %}
+  {% endwith %}
+{% elif duplicate_invoices_count is not None %}
+  {% with dup=duplicate_invoices_count %}
+    {% include "billing/_coverage_content.html" %}
+  {% endwith %}
+{% elif duplicates is not None %}
+  {% with dup=duplicates %}
+    {% include "billing/_coverage_content.html" %}
+  {% endwith %}
+{% else %}
+  {% with dup=0 %}
+    {% include "billing/_coverage_content.html" %}
+  {% endwith %}
+{% endif %}

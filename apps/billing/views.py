@@ -1,14 +1,16 @@
 from decimal import Decimal
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q, F
+from django.db.models import Q, F, Count
 from django.http import Http404
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
-from django.views.generic import ListView, View
+from django.views import View
+from django.views.generic import ListView
 
 from apps.accounts.permissions import RoleRequiredMixin
 from apps.billing.models import Invoice, InvoiceStatus
 from apps.reports.services import get_invoice_calculation_breakdown
+from apps.subscriptions.models import Subscription, SubscriptionStatus
 
 
 class InvoiceListView(RoleRequiredMixin, ListView):
@@ -156,3 +158,114 @@ class InvoicePrintView(View):
             "today": timezone.localdate(),
         }
         return render(request, "billing/invoice_print.html", context)
+
+
+# ---------------------------------------------------------------------------
+# A6: Billing Run (admin-only) — /billing/run/
+# ---------------------------------------------------------------------------
+
+class BillingRunView(RoleRequiredMixin, View):
+    """
+    Admin-only billing run page.
+
+    GET  → render run.html with empty form (no results yet).
+    POST → run billing engine in dry-run (action=preview) or live (action=commit) mode.
+
+    Context passed to run.html:
+        billing_run   : BillingRun instance (after POST) or None
+        is_preview    : True when the last run was a dry-run preview
+        target_as_of  : date string for the date input (defaults to today)
+        items         : first 200 BillingRunItems for the breakdown table
+        today         : today's date
+    """
+    allowed_roles = ["admin"]
+
+    def get(self, request, *args, **kwargs):
+        today = timezone.localdate()
+        return render(request, "billing/run.html", {
+            "billing_run": None,
+            "is_preview": False,
+            "target_as_of": today.isoformat(),
+            "items": [],
+            "today": today,
+        })
+
+    def post(self, request, *args, **kwargs):
+        from apps.billing.services.billing_run import run_billing
+
+        today = timezone.localdate()
+        action = request.POST.get("action", "preview")
+        as_of_str = request.POST.get("as_of", "").strip()
+
+        # Parse as_of date; fall back to today
+        try:
+            from datetime import date
+            as_of = date.fromisoformat(as_of_str) if as_of_str else today
+        except ValueError:
+            as_of = today
+
+        dry_run = action != "commit"
+        billing_run = run_billing(as_of=as_of, dry_run=dry_run, user=request.user)
+
+        # Fetch first 200 items for the detailed table
+        items = (
+            billing_run.items.select_related("subscription__customer", "invoice")
+            .order_by("id")[:200]
+        ) if not dry_run else []
+
+        return render(request, "billing/run.html", {
+            "billing_run": billing_run,
+            "is_preview": dry_run,
+            "target_as_of": as_of.isoformat(),
+            "items": items,
+            "today": today,
+        })
+
+
+# ---------------------------------------------------------------------------
+# A6: Coverage Check (admin-only) — /billing/coverage/
+# ---------------------------------------------------------------------------
+
+class BillingCoverageView(RoleRequiredMixin, View):
+    """
+    Admin-only billing coverage / integrity dashboard.
+
+    Context passed to coverage.html:
+        unbilled_count      : active non-paused subs with next_invoice_date <= today
+        duplicate_count     : invoice groups sharing (subscription, period_start)
+        unbilled_subs       : first 50 unbilled Subscription objects (for diagnostic table)
+        as_of               : today's date
+        today               : today's date
+    """
+    allowed_roles = ["admin"]
+
+    def get(self, request, *args, **kwargs):
+        today = timezone.localdate()
+
+        # Check 1: active non-paused subscriptions with unbilled periods due today
+        unbilled_qs = Subscription.objects.filter(
+            status=SubscriptionStatus.ACTIVE,
+            paused_at__isnull=True,
+            next_invoice_date__lte=today,
+        )
+        unbilled_count = unbilled_qs.count()
+        unbilled_subs = list(
+            unbilled_qs.select_related("customer", "plan").order_by("next_invoice_date")[:50]
+        )
+
+        # Check 2: duplicate invoices per (subscription, period_start)
+        duplicate_count = (
+            Invoice.objects
+            .values("subscription_id", "period_start")
+            .annotate(n=Count("id"))
+            .filter(n__gt=1)
+            .count()
+        )
+
+        return render(request, "billing/coverage.html", {
+            "unbilled_count": unbilled_count,
+            "duplicate_count": duplicate_count,
+            "unbilled_subs": unbilled_subs,
+            "as_of": today,
+            "today": today,
+        })
