@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Create Quotation from Template - Brightloop{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold mb-0">Create Quotation from Template</h3>
+            <a href="{% url 'subscriptions:subscription_list' %}" class="btn btn-outline-secondary btn-sm">&larr; Back to Subscriptions</a>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <p class="text-muted small mb-4">
+                    Quickly generate a customer quotation with pre-populated plan rates, variants, and snapshot prices based on a saved template.
+                </p>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2">
+                        {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ form.template.label }} *</label>
+                        {{ form.template }}
+                        {% if form.template.errors %}<div class="text-danger small">{{ form.template.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ form.customer.label }} *</label>
+                        {{ form.customer }}
+                        {% if form.customer.errors %}<div class="text-danger small">{{ form.customer.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">{{ form.start_date.label }} *</label>
+                        {{ form.start_date }}
+                        {% if form.start_date.errors %}<div class="text-danger small">{{ form.start_date.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'subscriptions:subscription_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">Generate Quotation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

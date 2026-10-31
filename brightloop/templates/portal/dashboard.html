@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Portal - Brightloop{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Welcome, {{ customer.name|default:user.email }}!</h2>
+        <p class="text-muted small mb-0">{% if customer.company %}{{ customer.company }} &bull; {% endif %}Manage your subscriptions and billing</p>
+    </div>
+    <div>
+        <a href="{% url 'portal:subscription_list' %}" class="btn btn-outline-primary btn-sm me-2">Subscriptions</a>
+        <a href="{% url 'portal:invoice_list' %}" class="btn btn-outline-secondary btn-sm">Invoices</a>
+    </div>
+</div>
+
+<!-- Overview KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 border-start border-primary border-4">
+            <div class="card-body">
+                <span class="text-muted small fw-semibold">ACTIVE SUBSCRIPTIONS</span>
+                <h3 class="fw-bold mt-2 mb-0">{{ active_subs_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 border-start border-warning border-4">
+            <div class="card-body">
+                <span class="text-muted small fw-semibold">OUTSTANDING BALANCE</span>
+                <h3 class="fw-bold mt-2 mb-0 text-dark">₹{{ outstanding_balance }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 border-start {% if overdue_count > 0 %}border-danger{% else %}border-success{% endif %} border-4">
+            <div class="card-body">
+                <span class="text-muted small fw-semibold">OVERDUE INVOICES</span>
+                <h3 class="fw-bold mt-2 mb-0 {% if overdue_count > 0 %}text-danger{% else %}text-success{% endif %}">{{ overdue_count }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Next Invoice Preview Section -->
+{% if primary_sub %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold mb-0">Subscription: {{ primary_sub.number|default:"Current Plan" }}</h5>
+            <small class="text-muted">{{ primary_sub.plan.name }} &bull; Term: {{ primary_sub.start_date }} to {{ primary_sub.expiry_date }}</small>
+        </div>
+        <div class="d-flex gap-2">
+            {% if primary_sub.status == 'active' %}
+                {% if not primary_sub.paused_at and primary_sub.plan.allow_pause %}
+                <form method="post" action="{% url 'portal:subscription_action' primary_sub.pk 'pause' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-warning" onclick="return confirm('Pause subscription?');">Pause</button>
+                </form>
+                {% elif primary_sub.paused_at %}
+                <form method="post" action="{% url 'portal:subscription_action' primary_sub.pk 'resume' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-success">Resume</button>
+                </form>
+                {% endif %}
+
+                {% if primary_sub.plan.allow_renew %}
+                <form method="post" action="{% url 'portal:subscription_action' primary_sub.pk 'renew' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-success">Renew Term</button>
+                </form>
+                {% endif %}
+            {% endif %}
+            <a href="{% url 'portal:subscription_detail' primary_sub.pk %}" class="btn btn-sm btn-outline-primary">Details</a>
+        </div>
+    </div>
+    <div class="card-body p-4">
+        {% if next_invoice_preview %}
+        <div class="bg-light p-3 rounded mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold text-primary">Next Scheduled Billing Period</span>
+                <span class="badge bg-primary">Preview &bull; Due {{ next_invoice_preview.due_date }}</span>
+            </div>
+            <p class="small text-muted mb-3">
+                Period: <strong>{{ next_invoice_preview.period_start }}</strong> to <strong>{{ next_invoice_preview.period_end }}</strong>
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered bg-white mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Line Description</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Tax</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line in next_invoice_preview.lines %}
+                        <tr>
+                            <td>{{ line.description }}</td>
+                            <td class="text-center">{{ line.quantity }}</td>
+                            <td class="text-end">₹{{ line.unit_price }}</td>
+                            <td class="text-end">₹{{ line.tax_amount }}</td>
+                            <td class="text-end fw-semibold">₹{{ line.line_total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">Projected Invoice Total:</td>
+                            <td class="text-end fw-bold text-primary">₹{{ next_invoice_preview.total }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No upcoming invoice scheduled or subscription is currently paused/closed.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Invoices Table -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0">Recent Invoices</h5>
+        <a href="{% url 'portal:invoice_list' %}" class="small text-decoration-none">View All &rarr;</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Due Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in recent_invoices %}
+                <tr>
+                    <td>
+                        <a href="{% url 'portal:invoice_detail' inv.pk %}" class="fw-bold text-decoration-none">
+                            {{ inv.number|default:"Pending" }}
+                        </a>
+                    </td>
+                    <td>{{ inv.invoice_date }}</td>
+                    <td>{{ inv.due_date }}</td>
+                    <td>₹{{ inv.total }}</td>
+                    <td>
+                        {% if inv.status == 'paid' %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif inv.status == 'confirmed' %}
+                            {% if inv.is_overdue %}
+                                <span class="badge bg-danger">Overdue</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Unpaid</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge bg-secondary">{{ inv.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if inv.status == 'confirmed' and inv.balance_due > 0 %}
+                            <a href="{% url 'portal:pay_invoice' inv.pk %}" class="btn btn-sm btn-primary">Pay Now</a>
+                        {% else %}
+                            <a href="{% url 'portal:invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No invoices issued yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

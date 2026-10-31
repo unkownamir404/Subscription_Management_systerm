@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Edit {{ object.name }}{% else %}New Plan{% endif %} - Brightloop{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold mb-0">{% if object %}Edit Plan: {{ object.name }}{% else %}Create Subscription Plan{% endif %}</h3>
+            <a href="{% url 'catalog:plan_list' %}" class="btn btn-outline-secondary btn-sm">&larr; Back to Plans</a>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2">
+                        {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Plan Name *</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Price (₹) *</label>
+                            {{ form.price }}
+                            {% if form.price.errors %}<div class="text-danger small">{{ form.price.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Interval Count *</label>
+                            {{ form.interval_count }}
+                            {% if form.interval_count.errors %}<div class="text-danger small">{{ form.interval_count.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Interval *</label>
+                            {{ form.interval }}
+                            {% if form.interval.errors %}<div class="text-danger small">{{ form.interval.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Min Quantity *</label>
+                            {{ form.min_qty }}
+                            {% if form.min_qty.errors %}<div class="text-danger small">{{ form.min_qty.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Valid From *</label>
+                            {{ form.valid_from }}
+                            {% if form.valid_from.errors %}<div class="text-danger small">{{ form.valid_from.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Valid To</label>
+                            {{ form.valid_to }}
+                            {% if form.valid_to.errors %}<div class="text-danger small">{{ form.valid_to.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="border rounded p-3 mb-4 bg-light">
+                        <label class="form-label fw-bold d-block mb-2">Lifecycle &amp; Customer Permissions</label>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="form-check">
+                                    {{ form.auto_close }}
+                                    <label class="form-check-label" for="{{ form.auto_close.id_for_label }}">Auto Close on Expiry</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-check">
+                                    {{ form.allow_early_close }}
+                                    <label class="form-check-label" for="{{ form.allow_early_close.id_for_label }}">Allow Early Close</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-check">
+                                    {{ form.allow_pause }}
+                                    <label class="form-check-label" for="{{ form.allow_pause.id_for_label }}">Allow Pause</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-check">
+                                    {{ form.allow_renew }}
+                                    <label class="form-check-label" for="{{ form.allow_renew.id_for_label }}">Allow Renew</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'catalog:plan_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">Save Plan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
