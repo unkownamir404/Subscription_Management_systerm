@@ -54,6 +54,34 @@ class Subscription(TimeStamped):
     def __str__(self):
         return f"{self.number} ({self.customer.name})"
 
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if not self.number and is_new:
+            import time
+            self.number = f"SUB-TEMP-{int(time.time() * 1000)}"
+        super().save(*args, **kwargs)
+        if is_new and (not self.number or self.number.startswith("SUB-TEMP-")):
+            from django.utils import timezone
+            year = (self.created_at or timezone.now()).year
+            self.number = f"SUB-{year}-{self.pk:06d}"
+            super().save(update_fields=['number'])
+
+    @property
+    def is_paused(self) -> bool:
+        return self.paused_at is not None
+
+    def is_expired(self, today=None) -> bool:
+        if today is None:
+            from django.utils import timezone
+            today = timezone.localdate()
+        return self.expiry_date < today
+
+    def is_quote_expired(self, today=None) -> bool:
+        if today is None:
+            from django.utils import timezone
+            today = timezone.localdate()
+        return bool(self.quote_valid_until and self.quote_valid_until < today)
+
 class SubscriptionLine(TimeStamped):
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE, related_name='lines')
     product = models.ForeignKey('catalog.Product', on_delete=models.PROTECT)
