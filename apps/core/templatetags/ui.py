@@ -48,6 +48,17 @@ def money(value):
     return f"{prefix}{formatted_int}.{decimal_part}"
 
 
+@register.filter(name="get_item")
+def get_item(dictionary, key):
+    """
+    Look up dictionary key that may contain hyphens or special characters.
+    Usage: {{ summary.ageing|get_item:"1-30" }}
+    """
+    if isinstance(dictionary, dict):
+        return dictionary.get(str(key), "")
+    return ""
+
+
 @register.filter(name="overdue_days")
 def overdue_days(due_date):
     """
