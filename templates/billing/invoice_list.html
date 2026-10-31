@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Invoices - Brightloop{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h2 class="h3 fw-bold mb-0">Invoices</h2>
+        <span class="badge bg-secondary rounded-pill">{{ page_obj.paginator.count|default:invoices|length }} total</span>
+      </div>
+      <p class="text-muted small mb-0 mt-1">Review, filter, and audit all generated customer invoices and billing lifecycles.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="/reports/" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-graph-up me-1"></i>Finance Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter Card -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3">
+      <form method="get" action="/invoices/" class="row g-2 align-items-end">
+        <!-- Customer / Keyword Search -->
+        <div class="col-12 col-md-4 col-lg-3">
+          <label class="form-label small text-muted mb-1">Search Customer or Invoice #</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" name="customer" class="form-control form-control-sm border-start-0" 
+                   placeholder="Customer name, INV-..." value="{{ filters.customer }}">
+          </div>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="col-6 col-md-3 col-lg-2">
+          <label class="form-label small text-muted mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="">All Statuses</option>
+            <option value="draft" {% if filters.status == 'draft' %}selected{% endif %}>Draft</option>
+            <option value="confirmed" {% if filters.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+            <option value="paid" {% if filters.status == 'paid' %}selected{% endif %}>Paid</option>
+            <option value="overdue" {% if filters.status == 'overdue' %}selected{% endif %}>Overdue</option>
+            <option value="partially_paid" {% if filters.status == 'partially_paid' %}selected{% endif %}>Partially Paid</option>
+            <option value="cancelled" {% if filters.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+          </select>
+        </div>
+
+        <!-- Date Range: From -->
+        <div class="col-6 col-md-2 col-lg-2">
+          <label class="form-label small text-muted mb-1">Invoice Date From</label>
+          <input type="date" name="date_from" class="form-control form-control-sm" value="{{ filters.date_from }}">
+        </div>
+
+        <!-- Date Range: To -->
+        <div class="col-6 col-md-2 col-lg-2">
+          <label class="form-label small text-muted mb-1">Invoice Date To</label>
+          <input type="date" name="date_to" class="form-control form-control-sm" value="{{ filters.date_to }}">
+        </div>
+
+        <!-- Actions -->
+        <div class="col-6 col-md-1 col-lg-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+            <i class="bi bi-funnel me-1"></i>Filter
+          </button>
+          <a href="/invoices/" class="btn btn-light btn-sm border" title="Reset Filters">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Invoices Table Card -->
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      {% if invoices %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr class="small text-muted text-uppercase">
+                <th class="ps-3">Invoice #</th>
+                <th>Customer</th>
+                <th>Invoice Date</th>
+                <th>Due Date</th>
+                <th>Period</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Paid</th>
+                <th class="text-end">Balance</th>
+                <th class="text-center">Status</th>
+                <th class="text-end pe-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for inv in invoices %}
+                {% with d_status=inv|derived_status bal=inv|invoice_balance %}
+                <tr>
+                  <!-- Invoice Number -->
+                  <td class="ps-3 fw-semibold">
+                    <a href="/invoices/{{ inv.number|default:inv.id }}/" class="text-decoration-none text-primary">
+                      {{ inv.number|default:"(Draft)" }}
+                    </a>
+                  </td>
+
+                  <!-- Customer Name -->
+                  <td>
+                    <div class="fw-medium text-dark">{{ inv.customer.name }}</div>
+                    {% if inv.subscription %}
+                      <div class="text-muted extra-small" style="font-size: 0.75rem;">
+                        Sub: {{ inv.subscription.number }} ({{ inv.subscription.plan.name }})
+                      </div>
+                    {% endif %}
+                  </td>
+
+                  <!-- Invoice Date -->
+                  <td class="text-nowrap small text-muted">
+                    {{ inv.invoice_date|date:"d M Y" }}
+                  </td>
+
+                  <!-- Due Date -->
+                  <td class="text-nowrap small">
+                    <span class="{% if d_status == 'overdue' %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                      {{ inv.due_date|date:"d M Y" }}
+                    </span>
+                    {% if d_status == 'overdue' %}
+                      <div class="extra-small text-danger" style="font-size: 0.72rem;">
+                        {{ inv.due_date|overdue_days }}d overdue
+                      </div>
+                    {% endif %}
+                  </td>
+
+                  <!-- Period -->
+                  <td class="text-nowrap small text-muted">
+                    {{ inv.period_start|date:"d M" }} &ndash; {{ inv.period_end|date:"d M Y" }}
+                  </td>
+
+                  <!-- Total -->
+                  <td class="text-end fw-semibold text-dark">
+                    {{ inv.total|money }}
+                  </td>
+
+                  <!-- Paid -->
+                  <td class="text-end text-success small">
+                    {{ inv.amount_paid|money }}
+                  </td>
+
+                  <!-- Balance -->
+                  <td class="text-end fw-semibold {% if bal > 0 %}text-danger{% else %}text-muted{% endif %}">
+                    {{ bal|money }}
+                  </td>
+
+                  <!-- Status Badge -->
+                  <td class="text-center">
+                    {% include "partials/_status_badge.html" with status=d_status %}
+                  </td>
+
+                  <!-- Actions -->
+                  <td class="text-end pe-3 text-nowrap">
+                    <a href="/invoices/{{ inv.number|default:inv.id }}/" 
+                       class="btn btn-sm btn-outline-primary py-0 px-2" 
+                       title="View Invoice Details">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="/invoices/{{ inv.number|default:inv.id }}/print/" 
+                       target="_blank" 
+                       class="btn btn-sm btn-outline-secondary py-0 px-2" 
+                       title="Print / Save PDF">
+                      <i class="bi bi-printer"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="card-footer bg-white border-top px-3 py-2">
+          {% include "partials/_pagination.html" %}
+        </div>
+      {% else %}
+        <div class="p-4">
+          {% include "partials/_empty_state.html" with title="No Invoices Found" message="No invoices match the selected filter criteria." cta_url="/invoices/" cta_text="Clear Filters" %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

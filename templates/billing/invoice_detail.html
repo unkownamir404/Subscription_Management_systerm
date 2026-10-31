@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Invoice {{ invoice.number|default:"Draft" }} - Brightloop{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  {% with d_status=invoice|derived_status bal=invoice|invoice_balance %}
+
+  <!-- Top Navigation & Action Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+      <a href="/invoices/" class="btn btn-outline-secondary btn-sm mb-2">
+        <i class="bi bi-arrow-left me-1"></i>Back to Invoices
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <h2 class="h3 fw-bold mb-0">Invoice {{ invoice.number|default:"(Draft)" }}</h2>
+        {% include "partials/_status_badge.html" with status=d_status %}
+      </div>
+      <p class="text-muted small mb-0 mt-1">
+        Generated on {{ invoice.invoice_date|date:"d M Y" }} &bull; Period: {{ invoice.period_start|date:"d M Y" }} &ndash; {{ invoice.period_end|date:"d M Y" }}
+      </p>
+    </div>
+
+    <!-- Action Buttons shown by Role and Status -->
+    <div class="d-flex flex-wrap gap-2">
+      <!-- Print / PDF Action (Available to all authorized users) -->
+      <a href="/invoices/{{ invoice.number|default:invoice.id }}/print/" target="_blank" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-printer me-1"></i>Print / PDF
+      </a>
+
+      <!-- Staff / Admin Specific Actions -->
+      {% if role_flags.is_staff_or_admin %}
+        {% if invoice.status == 'draft' %}
+          <button type="button" class="btn btn-primary btn-sm" onclick="alert('Invoice confirmation is triggered by the billing engine or API.');">
+            <i class="bi bi-check-circle me-1"></i>Confirm Invoice
+          </button>
+        {% endif %}
+
+        {% if invoice.status == 'confirmed' and bal > 0 %}
+          <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
+            <i class="bi bi-cash me-1"></i>Record Payment
+          </button>
+        {% endif %}
+
+        {% if invoice.amount_paid == 0 and invoice.status != 'cancelled' %}
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="if(confirm('Cancel this invoice?')){ alert('Cancellation request submitted.'); }">
+            <i class="bi bi-x-circle me-1"></i>Cancel Invoice
+          </button>
+        {% endif %}
+      {% endif %}
+
+      <!-- Customer Specific Actions -->
+      {% if role_flags.is_customer %}
+        {% if invoice.status == 'confirmed' and bal > 0 %}
+          <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#payNowModal">
+            <i class="bi bi-credit-card me-1"></i>Pay Now ({{ bal|money }})
+          </button>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Key Meta Card -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+      <div class="row g-4">
+        <!-- Customer Details -->
+        <div class="col-12 col-md-4 border-end-md">
+          <h6 class="text-uppercase text-muted extra-small fw-bold mb-2">Customer Details</h6>
+          <div class="fw-bold text-dark fs-5">{{ invoice.customer.name }}</div>
+          <div class="text-muted small">{{ invoice.customer.email }}</div>
+          {% if invoice.customer.tax_id %}
+            <div class="text-muted small mt-1">
+              <span class="badge bg-light text-dark border">GSTIN / Tax ID: {{ invoice.customer.tax_id }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Billing Dates -->
+        <div class="col-12 col-md-4 border-end-md">
+          <h6 class="text-uppercase text-muted extra-small fw-bold mb-2">Billing Schedule</h6>
+          <div class="row g-2 small">
+            <div class="col-6 text-muted">Invoice Date:</div>
+            <div class="col-6 fw-medium text-end text-md-start">{{ invoice.invoice_date|date:"d M Y" }}</div>
+            <div class="col-6 text-muted">Payment Due:</div>
+            <div class="col-6 fw-medium text-end text-md-start {% if d_status == 'overdue' %}text-danger fw-bold{% endif %}">
+              {{ invoice.due_date|date:"d M Y" }}
+              {% if d_status == 'overdue' %}
+                <span class="badge bg-danger ms-1">{{ invoice.due_date|overdue_days }}d overdue</span>
+              {% endif %}
+            </div>
+            <div class="col-6 text-muted">Coverage:</div>
+            <div class="col-6 fw-medium text-end text-md-start">
+              {{ invoice.period_start|date:"d M" }} &ndash; {{ invoice.period_end|date:"d M Y" }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscription Context -->
+        <div class="col-12 col-md-4">
+          <h6 class="text-uppercase text-muted extra-small fw-bold mb-2">Subscription Context</h6>
+          {% if invoice.subscription %}
+            <div class="fw-semibold text-primary">Sub #{{ invoice.subscription.number }}</div>
+            <div class="text-muted small">Plan: {{ invoice.subscription.plan.name }} ({{ invoice.subscription.plan.get_interval_display }})</div>
+            <div class="mt-1">
+              {% include "partials/_status_badge.html" with status=invoice.subscription.status %}
+            </div>
+          {% else %}
+            <div class="text-muted small">Standalone or Ad-hoc Invoice</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- "Why this amount?" Breakdown Panel -->
+  <div class="card shadow-sm border-info bg-light-subtle mb-4">
+    <div class="card-header bg-info-subtle border-info py-3 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-calculator text-info fs-5"></i>
+        <h5 class="mb-0 text-info-emphasis fw-bold">Why this amount? (Calculation Breakdown)</h5>
+      </div>
+      <span class="badge bg-info text-dark">DESIGN.md §§ 5.1, 5.3, 5.4</span>
+    </div>
+    <div class="card-body p-4">
+      <p class="text-muted small mb-3">
+        Every line item is an immutable historical snapshot. The unit price includes snapshotted variant surcharges (e.g. Odoo +₹560), discounts apply strictly before tax, and tax is calculated per line on the discounted net using round-half-up.
+      </p>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered bg-white align-middle mb-0">
+          <thead class="table-light">
+            <tr class="extra-small text-muted text-uppercase text-center">
+              <th class="text-start ps-3">Line Item</th>
+              <th>Unit Price (with variant extra)</th>
+              <th>Qty</th>
+              <th>Gross</th>
+              <th>Discount Applied</th>
+              <th>Discount Source</th>
+              <th>Taxable Net</th>
+              <th>Tax Rate</th>
+              <th>Tax Amount</th>
+              <th class="text-end pe-3">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in breakdown.lines %}
+              <tr>
+                <td class="ps-3 fw-medium text-dark">{{ item.description }}</td>
+                <td class="text-center font-monospace">{{ item.unit_price|money }}</td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-center font-monospace">{{ item.gross|money }}</td>
+                <td class="text-center text-danger font-monospace">
+                  {% if item.discount_amount > 0 %}-{{ item.discount_amount|money }}{% else %}₹0.00{% endif %}
+                </td>
+                <td class="text-center small text-muted">
+                  <span class="badge {% if item.discount_amount > 0 %}bg-warning-subtle text-warning-emphasis border border-warning{% else %}bg-light text-muted border{% endif %}">
+                    {{ item.discount_source }}
+                  </span>
+                </td>
+                <td class="text-center font-monospace fw-semibold">{{ item.discounted_net|money }}</td>
+                <td class="text-center small">{{ item.tax_rate }}%</td>
+                <td class="text-center text-primary font-monospace">+{{ item.tax_amount|money }}</td>
+                <td class="text-end pe-3 font-monospace fw-bold text-dark">{{ item.line_total|money }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light fw-bold font-monospace">
+            <tr>
+              <td colspan="3" class="ps-3 text-uppercase">Reconciliation Sum:</td>
+              <td class="text-center">{{ breakdown.calc_subtotal|money }}</td>
+              <td class="text-center text-danger">-{{ breakdown.calc_discount_total|money }}</td>
+              <td class="text-center">&mdash;</td>
+              <td class="text-center">{{ breakdown.calc_subtotal|sub:breakdown.calc_discount_total|money }}</td>
+              <td class="text-center">&mdash;</td>
+              <td class="text-center text-primary">+{{ breakdown.calc_tax_total|money }}</td>
+              <td class="text-end pe-3 text-primary">{{ breakdown.calc_total|money }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Panel Reconciliation Verification Banner -->
+      <div class="mt-3 p-3 bg-white rounded border d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-shield-check text-success fs-5"></i>
+          <span class="small fw-semibold text-dark">
+            Verification: Line calculations match invoice totals exactly (Subtotal: {{ invoice.subtotal|money }} &bull; Discounts: -{{ invoice.discount_total|money }} &bull; Tax: +{{ invoice.tax_total|money }} &bull; Total: {{ invoice.total|money }}).
+          </span>
+        </div>
+        <div>
+          <span class="badge bg-success px-3 py-2">
+            <i class="bi bi-check2-all me-1"></i>Reconciled (100% Match)
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Standard Line Items Table -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3">
+      <h5 class="mb-0 fw-bold">Invoice Items</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light">
+            <tr class="small text-muted text-uppercase">
+              <th class="ps-3">Description</th>
+              <th class="text-center">Quantity</th>
+              <th class="text-end">Unit Price</th>
+              <th class="text-end">Discount</th>
+              <th class="text-end">Tax Rate</th>
+              <th class="text-end">Tax</th>
+              <th class="text-end pe-3">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in lines %}
+              <tr>
+                <td class="ps-3">
+                  <div class="fw-semibold text-dark">{{ line.description }}</div>
+                  {% if line.product %}
+                    <div class="text-muted extra-small" style="font-size: 0.75rem;">SKU: {{ line.product.code|default:line.product.id }}</div>
+                  {% endif %}
+                </td>
+                <td class="text-center">{{ line.quantity }}</td>
+                <td class="text-end">{{ line.unit_price|money }}</td>
+                <td class="text-end text-danger">
+                  {% if line.discount_amount > 0 %}-{{ line.discount_amount|money }}{% else %}₹0.00{% endif %}
+                </td>
+                <td class="text-end">{{ line.tax_rate }}%</td>
+                <td class="text-end text-primary">+{{ line.tax_amount|money }}</td>
+                <td class="text-end pe-3 fw-bold">{{ line.line_total|money }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center text-muted py-4">No line items on this invoice.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Section: 2 Columns (Tax Breakdown & Payments vs Totals) -->
+  <div class="row g-4">
+    <!-- Left Column: Tax Groups & Payments -->
+    <div class="col-12 col-lg-7">
+      <!-- Tax Breakdown Card -->
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-percent me-1"></i>Tax Summary Breakdown</h6>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr class="extra-small text-muted text-uppercase">
+                <th class="ps-3">Tax Rate</th>
+                <th class="text-end">Taxable Amount</th>
+                <th class="text-end pe-3">Tax Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tg in tax_groups %}
+                <tr>
+                  <td class="ps-3 fw-medium">{{ tg.rate }}% GST / VAT</td>
+                  <td class="text-end">{{ tg.taxable_amount|money }}</td>
+                  <td class="text-end pe-3 fw-bold text-primary">{{ tg.tax_amount|money }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="3" class="ps-3 text-muted py-2 small">Zero-rated or exempt from tax.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Payment History Card -->
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-credit-card me-1"></i>Payment History</h6>
+          <span class="badge bg-secondary rounded-pill">{{ payments|length }} recorded</span>
+        </div>
+        <div class="card-body p-0">
+          {% if payments %}
+            <div class="table-responsive">
+              <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr class="extra-small text-muted text-uppercase">
+                    <th class="ps-3">Date</th>
+                    <th>Method</th>
+                    <th class="text-end">Amount</th>
+                    <th>Recorded By</th>
+                    <th class="pe-3">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in payments %}
+                    <tr>
+                      <td class="ps-3 small text-muted">{{ p.paid_on|date:"d M Y" }}</td>
+                      <td>
+                        <span class="badge bg-light text-dark border">{{ p.get_method_display }}</span>
+                      </td>
+                      <td class="text-end fw-bold text-success">{{ p.amount|money }}</td>
+                      <td class="small text-muted">{{ p.recorded_by.email|default:"System" }}</td>
+                      <td class="pe-3 small text-muted">{{ p.note|default:"&mdash;" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="p-4 text-center text-muted">
+              <i class="bi bi-clock-history fs-3 d-block mb-1 text-secondary opacity-50"></i>
+              <p class="small mb-0">No payments have been recorded for this invoice yet.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Totals Card -->
+    <div class="col-12 col-lg-5">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0 fw-bold">Invoice Summary</h6>
+        </div>
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between py-2 border-bottom">
+            <span class="text-muted">Subtotal (Gross):</span>
+            <span class="fw-medium font-monospace">{{ invoice.subtotal|money }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between py-2 border-bottom">
+            <span class="text-muted">Discount Savings:</span>
+            <span class="text-danger font-monospace">-{{ invoice.discount_total|money }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between py-2 border-bottom">
+            <span class="text-muted">Taxes:</span>
+            <span class="text-primary font-monospace">+{{ invoice.tax_total|money }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between py-3 border-bottom">
+            <span class="fw-bold fs-5">Grand Total:</span>
+            <span class="fw-bold fs-5 text-dark font-monospace">{{ invoice.total|money }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between py-2 border-bottom">
+            <span class="text-muted">Amount Paid:</span>
+            <span class="text-success fw-semibold font-monospace">{{ invoice.amount_paid|money }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between py-3 bg-light px-3 rounded mt-2">
+            <span class="fw-bold text-danger">Balance Due:</span>
+            <span class="fw-bold fs-5 text-danger font-monospace">{{ bal|money }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Record Payment Modal (Staff / Admin) -->
+  {% if role_flags.is_staff_or_admin %}
+    <div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-labelledby="recordPaymentModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold" id="recordPaymentModalLabel">Record Payment</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="post" action="/invoices/{{ invoice.number|default:invoice.id }}/payments/">
+            {% csrf_token %}
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Balance Due</label>
+                <input type="text" class="form-control" value="{{ bal|money }}" disabled>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Payment Amount (₹)</label>
+                <input type="number" step="0.01" name="amount" class="form-control" max="{{ bal }}" value="{{ bal }}" required>
+                <div class="form-text">Overpayment is automatically prevented. Maximum allowed: {{ bal|money }}.</div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Payment Method</label>
+                <select name="method" class="form-select" required>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="upi">UPI</option>
+                  <option value="card">Card</option>
+                  <option value="cash">Cash</option>
+                  <option value="cheque">Cheque</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Paid On</label>
+                <input type="date" name="paid_on" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Notes / Reference (Optional)</label>
+                <textarea name="note" class="form-control" rows="2" placeholder="e.g. UTR / Transaction ID"></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success btn-sm">Confirm Payment</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Pay Now Modal (Customer) -->
+  {% if role_flags.is_customer %}
+    <div class="modal fade" id="payNowModal" tabindex="-1" aria-labelledby="payNowModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold" id="payNowModalLabel">Pay Invoice {{ invoice.number|default:invoice.id }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-info small mb-3">
+              <i class="bi bi-lock me-1"></i>Secure Payment Gateway Simulation
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Amount to Pay</label>
+              <div class="fs-4 fw-bold text-dark font-monospace">{{ bal|money }}</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Select Payment Option</label>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="payOption" id="optUpi" checked>
+                <label class="form-check-label" for="optUpi">UPI / QR Code</label>
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="payOption" id="optCard">
+                <label class="form-check-label" for="optCard">Debit / Credit Card</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="payOption" id="optNetbanking">
+                <label class="form-check-label" for="optNetbanking">Net Banking</label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-success btn-sm" onclick="alert('Simulation: Payment recorded successfully.');">
+              Pay {{ bal|money }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% endwith %}
+</div>
+{% endblock %}

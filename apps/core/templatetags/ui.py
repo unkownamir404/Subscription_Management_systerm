@@ -102,3 +102,65 @@ def status_class(status):
         "created": "badge bg-success",
     }
     return mapping.get(key, "badge bg-light text-dark border")
+
+
+@register.filter(name="derived_status")
+def derived_status(invoice):
+    """
+    Derives invoice display status:
+    - paid: if status == 'paid'
+    - cancelled: if status == 'cancelled'
+    - draft: if status == 'draft'
+    - overdue: if status == 'confirmed' and due_date < today and amount_paid < total
+    - partially_paid: if status == 'confirmed' and amount_paid > 0 and amount_paid < total
+    - confirmed: if status == 'confirmed'
+    """
+    if not invoice:
+        return ""
+    status = getattr(invoice, "status", "")
+    if status in ("paid", "cancelled", "draft"):
+        return status
+    if status == "confirmed":
+        today = timezone.localdate()
+        due_date = getattr(invoice, "due_date", None)
+        amount_paid = getattr(invoice, "amount_paid", Decimal("0.00")) or Decimal("0.00")
+        total = getattr(invoice, "total", Decimal("0.00")) or Decimal("0.00")
+        if due_date and due_date < today and amount_paid < total:
+            return "overdue"
+        if Decimal("0.00") < amount_paid < total:
+            return "partially_paid"
+        return "confirmed"
+    return status
+
+
+@register.filter(name="invoice_balance")
+def invoice_balance(invoice):
+    """Returns invoice balance remaining (total - amount_paid), floor at 0.00."""
+    if not invoice:
+        return Decimal("0.00")
+    total = getattr(invoice, "total", Decimal("0.00")) or Decimal("0.00")
+    amount_paid = getattr(invoice, "amount_paid", Decimal("0.00")) or Decimal("0.00")
+    return max(Decimal("0.00"), total - amount_paid)
+
+
+@register.filter(name="sub")
+def sub(value, arg):
+    """Subtract arg from value safely."""
+    try:
+        val_d = Decimal(str(value)) if not isinstance(value, Decimal) else value
+        arg_d = Decimal(str(arg)) if not isinstance(arg, Decimal) else arg
+        return val_d - arg_d
+    except Exception:
+        return value
+
+
+@register.filter(name="mult")
+def mult(value, arg):
+    """Multiply value by arg safely with 2 decimal places."""
+    try:
+        val_d = Decimal(str(value)) if not isinstance(value, Decimal) else value
+        arg_d = Decimal(str(arg)) if not isinstance(arg, Decimal) else arg
+        return (val_d * arg_d).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    except Exception:
+        return value
+
