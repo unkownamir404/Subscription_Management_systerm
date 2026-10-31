@@ -1,0 +1,230 @@
+{% load ui %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice {{ invoice.number|default:"Draft" }} - Brightloop Software</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #1e293b;
+    }
+    .invoice-card {
+      max-width: 800px;
+      margin: 30px auto;
+      background: #ffffff;
+      padding: 40px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .invoice-header {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 24px;
+      margin-bottom: 24px;
+    }
+    .table-invoice th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid #cbd5e1;
+    }
+    .table-invoice td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 8px;
+      font-size: 0.9rem;
+    }
+    .totals-table td {
+      padding: 6px 8px;
+    }
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .invoice-card {
+        border: none !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 1.5cm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Action Bar (Hidden on Print) -->
+  <div class="container no-print py-3">
+    <div class="d-flex justify-content-between align-items-center max-w-800 mx-auto" style="max-width: 800px;">
+      <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back
+      </a>
+      <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-primary btn-sm">
+          <i class="bi bi-printer me-1"></i>Print / Save as PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- A4 Printable Invoice Sheet -->
+  <div class="invoice-card">
+    <!-- Header -->
+    <div class="invoice-header d-flex justify-content-between align-items-start">
+      <div>
+        <h3 class="fw-bold text-primary mb-1">BRIGHTLOOP SOFTWARE</h3>
+        <p class="text-muted small mb-0">Subscription & Cloud Infrastructure</p>
+        <p class="text-muted small mb-0">GSTIN / Tax ID: 24AAACB1234F1Z5</p>
+        <p class="text-muted small mb-0">Email: billing@brightloop.test</p>
+      </div>
+      <div class="text-end">
+        <h4 class="fw-bold text-dark mb-1">INVOICE</h4>
+        <div class="fw-semibold text-secondary">{{ invoice.number|default:"DRAFT INVOICE" }}</div>
+        <div class="mt-2">
+          {% include "partials/_status_badge.html" with status=invoice.status|default:"Draft" %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Meta Details & Addresses -->
+    <div class="row mb-4">
+      <div class="col-6">
+        <h6 class="text-uppercase text-muted fw-bold small">Billed To:</h6>
+        <div class="fw-bold text-dark">{{ invoice.customer.name|default:invoice.customer }}</div>
+        {% if invoice.customer.company %}
+          <div class="text-muted small">{{ invoice.customer.company }}</div>
+        {% endif %}
+        {% if invoice.customer.billing_address %}
+          <div class="text-muted small text-break">{{ invoice.customer.billing_address|linebreaksbr }}</div>
+        {% endif %}
+        {% if invoice.customer.tax_id %}
+          <div class="text-muted small"><strong>Tax ID:</strong> {{ invoice.customer.tax_id }}</div>
+        {% endif %}
+      </div>
+      <div class="col-6 text-end">
+        <table class="table table-sm table-borderless totals-table text-end mb-0">
+          <tr>
+            <td class="text-muted small">Invoice Date:</td>
+            <td class="fw-medium small">{{ invoice.invoice_date|default:invoice.period_start|date:"d M Y" }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted small">Due Date:</td>
+            <td class="fw-bold small text-danger">{{ invoice.due_date|date:"d M Y" }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted small">Billing Period:</td>
+            <td class="small">{{ invoice.period_start|date:"d M Y" }} &ndash; {{ invoice.period_end|date:"d M Y" }}</td>
+          </tr>
+          {% if invoice.subscription %}
+            <tr>
+              <td class="text-muted small">Subscription:</td>
+              <td class="small fw-medium">{{ invoice.subscription.number }}</td>
+            </tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+    <!-- Line Items Table -->
+    <div class="table-responsive mb-4">
+      <table class="table table-invoice align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th class="text-center">Qty</th>
+            <th class="text-end">Unit Price</th>
+            <th class="text-end">Discount</th>
+            <th class="text-end">Tax Rate</th>
+            <th class="text-end">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in invoice.lines.all %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ line.description }}</div>
+                {% if line.discount %}
+                  <div class="text-success small"><i class="bi bi-tag-fill me-1"></i>Discount applied: {{ line.discount.name }}</div>
+                {% endif %}
+              </td>
+              <td class="text-center">{{ line.quantity }}</td>
+              <td class="text-end">{{ line.unit_price|money }}</td>
+              <td class="text-end text-success">{% if line.discount_amount > 0 %}-{{ line.discount_amount|money }}{% else %}&ndash;{% endif %}</td>
+              <td class="text-end">{{ line.tax_rate }}%</td>
+              <td class="text-end fw-bold">{{ line.line_total|money }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-3">No line items available.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary / Totals Breakdown -->
+    <div class="row justify-content-end mb-4">
+      <div class="col-6">
+        <table class="table table-sm table-borderless totals-table text-end mb-0">
+          <tr>
+            <td class="text-muted">Subtotal:</td>
+            <td class="fw-medium">{{ invoice.subtotal|money }}</td>
+          </tr>
+          {% if invoice.discount_total > 0 %}
+            <tr>
+              <td class="text-success">Total Discounts:</td>
+              <td class="text-success fw-medium">-{{ invoice.discount_total|money }}</td>
+            </tr>
+          {% endif %}
+          <tr>
+            <td class="text-muted">Total Tax:</td>
+            <td class="fw-medium">{{ invoice.tax_total|money }}</td>
+          </tr>
+          <tr class="border-top border-bottom border-2">
+            <td class="fw-bold fs-6">Grand Total:</td>
+            <td class="fw-bold fs-6 text-primary">{{ invoice.total|money }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">Amount Paid:</td>
+            <td class="fw-medium text-success">{{ invoice.amount_paid|money }}</td>
+          </tr>
+          <tr class="fw-bold">
+            <td class="text-danger">Balance Due:</td>
+            <td class="text-danger fs-6">
+              {% if invoice.amount_paid < invoice.total %}
+                {{ invoice.total|default:0|money }}
+              {% else %}
+                ₹0.00
+              {% endif %}
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Footer / Notes -->
+    <div class="border-top pt-3 text-muted small">
+      <div class="fw-bold text-dark mb-1">Payment Instructions:</div>
+      <div>NEFT / RTGS Transfer to: <strong>Brightloop Software Pvt Ltd</strong> | Account: <strong>012345678901</strong> | IFSC: <strong>BKID0001234</strong></div>
+      <div>UPI ID: <strong>brightloop@bank</strong></div>
+      <div class="mt-2 text-center text-secondary fst-italic">Thank you for your business with Brightloop!</div>
+    </div>
+  </div>
+
+</body>
+</html>
