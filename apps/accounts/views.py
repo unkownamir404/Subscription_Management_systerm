@@ -19,6 +19,15 @@ from apps.accounts.forms import (
 )
 
 
+def root_redirect_view(request):
+    if not request.user.is_authenticated:
+        return redirect("/login/")
+    user_role = getattr(request.user, "role", None)
+    if user_role in ("admin", "staff") or request.user.is_superuser or request.user.is_staff:
+        return redirect("/reports/")
+    return redirect("/portal/")
+
+
 def signup_view(request):
     if request.user.is_authenticated:
         return redirect("/portal/")
