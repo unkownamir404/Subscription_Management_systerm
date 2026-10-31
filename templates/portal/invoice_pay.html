@@ -1,88 +1,129 @@
 {% extends "base.html" %}
 {% load ui %}
 
-{% block title %}Pay Invoice {{ invoice.number|default:invoice.id }} - Customer Portal{% endblock %}
+{% block title %}Pay Invoice {{ invoice.number|default:invoice.id }} – Brightloop{% endblock %}
 
 {% block content %}
-<div class="container py-5" style="max-width: 650px;">
-  <!-- Back Button -->
-  <a href="/portal/invoices/" class="btn btn-outline-secondary btn-sm mb-3">
+<div class="container py-5" style="max-width:560px;">
+  <!-- Back -->
+  <a href="/portal/invoices/" class="btn btn-outline-secondary btn-sm mb-4">
     <i class="bi bi-arrow-left me-1"></i>Back to Invoices
   </a>
 
   <!-- Payment Card -->
-  <div class="card shadow border-0">
-    <div class="card-header bg-primary text-white py-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-credit-card me-2"></i>Checkout & Payment</h5>
-        <span class="badge bg-light text-primary">Method: Card</span>
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+
+    <!-- Card Header -->
+    <div class="py-4 px-4 text-white text-center"
+         style="background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%);">
+      <div class="mb-2">
+        <i class="bi bi-shield-lock-fill fs-2 opacity-75"></i>
       </div>
+      <h4 class="fw-bold mb-1">Secure Checkout</h4>
+      <p class="mb-0 opacity-75 small">
+        <i class="bi bi-lock-fill me-1"></i>256-bit SSL encrypted payment
+      </p>
     </div>
 
     <div class="card-body p-4">
-      <!-- Invoice Summary Box -->
-      <div class="bg-light p-3 rounded mb-4 border">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="text-muted small">Invoice Number:</span>
-          <span class="fw-bold text-dark font-monospace">{{ invoice.number|default:"(Draft)" }}</span>
+
+      <!-- Invoice Summary -->
+      <div class="rounded-3 p-3 mb-4 border" style="background:#f8fafc;">
+        <div class="fw-semibold text-dark mb-3 small text-uppercase tracking-wide">
+          <i class="bi bi-file-earmark-text me-1 text-primary"></i>Invoice Summary
         </div>
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="text-muted small">Customer Account:</span>
+        <div class="d-flex justify-content-between mb-2 small">
+          <span class="text-muted">Invoice Number</span>
+          <span class="fw-bold font-monospace text-dark">{{ invoice.number|default:"(Draft)" }}</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2 small">
+          <span class="text-muted">Customer</span>
           <span class="fw-medium text-dark">{{ customer.name }}</span>
         </div>
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="text-muted small">Due Date:</span>
-          <span class="fw-medium text-dark">{{ invoice.due_date|date:"d M Y" }}</span>
+        <div class="d-flex justify-content-between mb-2 small">
+          <span class="text-muted">Invoice Date</span>
+          <span class="text-dark">{{ invoice.invoice_date|date:"d M Y" }}</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2 small">
+          <span class="text-muted">Due Date</span>
+          <span class="text-dark">{{ invoice.due_date|date:"d M Y" }}</span>
         </div>
         <hr class="my-2">
         <div class="d-flex justify-content-between align-items-center">
-          <span class="fw-bold text-dark">Amount Due:</span>
-          <span class="fs-4 fw-bold text-danger font-monospace">{{ balance|money }}</span>
+          <span class="fw-bold text-dark">Amount Due</span>
+          <span class="fs-3 fw-bold text-danger font-monospace">{{ balance|money }}</span>
         </div>
       </div>
 
-      <!-- Payment Form (method=POST triggers record_payment with method=card) -->
+      <!-- Payment Form -->
       <form method="post" action="{% url 'portal:invoice_pay' invoice.number|default:invoice.id %}">
         {% csrf_token %}
 
-        <h6 class="fw-bold text-dark mb-3">Card Payment Details (Simulation)</h6>
+        <h6 class="fw-bold text-dark mb-3">
+          <i class="bi bi-credit-card me-1 text-primary"></i>Card Details
+          <span class="badge bg-light text-muted border ms-2 fw-normal" style="font-size:0.7rem;">Simulation</span>
+        </h6>
 
+        <!-- Cardholder Name -->
         <div class="mb-3">
           <label class="form-label small fw-semibold">Cardholder Name</label>
-          <input type="text" class="form-control" name="cardholder_name" value="{{ customer.name }}" required>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
+            <input type="text" class="form-control border-start-0"
+                   name="cardholder_name" value="{{ customer.name }}" required>
+          </div>
         </div>
 
+        <!-- Card Number -->
         <div class="mb-3">
           <label class="form-label small fw-semibold">Card Number</label>
           <div class="input-group">
-            <span class="input-group-text bg-light"><i class="bi bi-credit-card-2-front"></i></span>
-            <input type="text" class="form-control font-monospace" placeholder="4532 &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 8892" value="4532 8901 2345 8892" required>
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-credit-card-2-front text-muted"></i></span>
+            <input type="text" class="form-control border-start-0 font-monospace"
+                   placeholder="4532 •••• •••• 8892"
+                   value="4532 8901 2345 8892" required maxlength="19">
+            <span class="input-group-text bg-light border-start-0">
+              <i class="bi bi-credit-card text-muted small"></i>
+            </span>
           </div>
         </div>
 
+        <!-- Expiry + CVV -->
         <div class="row g-2 mb-4">
-          <div class="col-6">
+          <div class="col-7">
             <label class="form-label small fw-semibold">Expiration Date</label>
-            <input type="text" class="form-control font-monospace" placeholder="MM/YY" value="12/28" required>
+            <input type="text" class="form-control font-monospace" placeholder="MM / YY" value="12 / 28" required>
           </div>
-          <div class="col-6">
-            <label class="form-label small fw-semibold">CVV / CVC</label>
-            <input type="password" class="form-control font-monospace" placeholder="&bull;&bull;&bull;" value="321" maxlength="4" required>
+          <div class="col-5">
+            <label class="form-label small fw-semibold">CVV</label>
+            <div class="input-group">
+              <input type="password" class="form-control font-monospace border-end-0" placeholder="•••" value="321" maxlength="4" required>
+              <span class="input-group-text bg-light"><i class="bi bi-question-circle text-muted" title="3-4 digit code on back of card"></i></span>
+            </div>
           </div>
         </div>
 
+        <!-- Pay Button -->
         <div class="d-grid gap-2">
-          <button type="submit" class="btn btn-success btn-lg fw-bold">
-            <i class="bi bi-lock-fill me-1"></i>Pay {{ balance|money }}
+          <button type="submit" class="btn btn-success btn-lg fw-bold rounded-3 py-3"
+                  style="background:linear-gradient(135deg,#059669,#10b981);border:none;">
+            <i class="bi bi-lock-fill me-2"></i>Pay {{ balance|money }}
           </button>
-          <a href="/portal/invoices/" class="btn btn-light text-muted btn-sm">Cancel Payment</a>
+          <a href="/portal/invoices/" class="btn btn-light text-muted fw-medium">Cancel Payment</a>
         </div>
       </form>
     </div>
 
-    <div class="card-footer bg-light text-center py-2 text-muted small">
-      <i class="bi bi-shield-check text-success me-1"></i>
-      Calls <code>billing.services.record_payment(method='card')</code> atomically under row lock.
+    <!-- Footer Trust Badges -->
+    <div class="card-footer bg-light text-center py-3 border-top-0">
+      <div class="d-flex justify-content-center gap-3 text-muted" style="font-size:0.72rem;">
+        <span><i class="bi bi-shield-check text-success me-1"></i>SSL Secured</span>
+        <span><i class="bi bi-lock text-success me-1"></i>PCI Compliant</span>
+        <span><i class="bi bi-check-circle text-success me-1"></i>Encrypted</span>
+      </div>
+      <p class="text-muted mb-0 mt-2" style="font-size:0.7rem;">
+        Calls <code>billing.services.record_payment(method='card')</code> atomically under select_for_update row lock.
+      </p>
     </div>
   </div>
 </div>

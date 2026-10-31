@@ -3,14 +3,19 @@
 {% block title %}Sign In - Brightloop{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5 col-lg-4">
-        <div class="card shadow-sm border-0 mt-5">
-            <div class="card-body p-4">
-                <h3 class="card-title fw-bold text-center mb-3">Sign In</h3>
-                <p class="text-muted text-center mb-4">Enter your credentials to access your account</p>
+<div class="row justify-content-center my-4">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="brand-badge mx-auto mb-2" style="width: 44px; height: 44px;">
+                        <i class="bi bi-arrow-repeat fs-4 text-white"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark">Welcome back</h3>
+                    <p class="text-muted small mb-0">Sign in to your Brightloop subscription workspace</p>
+                </div>
 
-                <form method="post" novalidate>
+                <form method="post" novalidate id="loginForm">
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -22,7 +27,7 @@
                     {% endif %}
 
                     <div class="mb-3">
-                        <label for="{{ form.username.id_for_label }}" class="form-label fw-semibold">Email address</label>
+                        <label for="{{ form.username.id_for_label }}" class="form-label fw-semibold small text-dark">Email address</label>
                         {{ form.username }}
                         {% if form.username.errors %}
                             <div class="text-danger small mt-1">
@@ -33,8 +38,8 @@
 
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center">
-                            <label for="{{ form.password.id_for_label }}" class="form-label fw-semibold mb-0">Password</label>
-                            <a href="{% url 'password_reset' %}" class="small text-decoration-none">Forgot password?</a>
+                            <label for="{{ form.password.id_for_label }}" class="form-label fw-semibold small text-dark mb-0">Password</label>
+                            <a href="{% url 'password_reset' %}" class="small text-decoration-none text-primary">Forgot password?</a>
                         </div>
                         <div class="mt-1">
                             {{ form.password }}
@@ -46,15 +51,48 @@
                         {% endif %}
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mt-2">Sign In</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mt-2 shadow-sm">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+                    </button>
                 </form>
 
-                <div class="text-center mt-4 pt-2 border-top">
+                <!-- Demo One-Click Sign-in Chips -->
+                <div class="mt-4 pt-3 border-top text-center">
+                    <div class="extra-small text-uppercase fw-bold text-muted mb-2">
+                        <i class="bi bi-lightning-charge text-warning me-1"></i>Quick Demo Autofill
+                    </div>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger px-2" onclick="fillDemo('admin@brightloop.test', 'Demo@12345')">
+                            Admin
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary px-2" onclick="fillDemo('staff@brightloop.test', 'Demo@12345')">
+                            Staff
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success px-2" onclick="fillDemo('customer@brightloop.test', 'Demo@12345')">
+                            Customer
+                        </button>
+                    </div>
+                </div>
+
+                <div class="text-center mt-3 pt-2">
                     <span class="text-muted small">Don't have an account?</span>
-                    <a href="{% url 'signup' %}" class="small fw-semibold text-decoration-none">Sign up</a>
+                    <a href="{% url 'signup' %}" class="small fw-semibold text-decoration-none ms-1">Create account</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function fillDemo(email, pwd) {
+    const u = document.getElementById("{{ form.username.id_for_label }}");
+    const p = document.getElementById("{{ form.password.id_for_label }}");
+    if (u) u.value = email;
+    if (p) p.value = pwd;
+    u.classList.add("is-valid");
+    p.classList.add("is-valid");
+  }
+</script>
 {% endblock %}

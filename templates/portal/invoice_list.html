@@ -1,107 +1,107 @@
 {% extends "base.html" %}
 {% load ui %}
 
-{% block title %}My Invoices - Customer Portal{% endblock %}
+{% block title %}My Invoices – Customer Portal{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
+
   <!-- Header -->
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
     <div>
-      <a href="/portal/" class="btn btn-outline-secondary btn-sm mb-2">
-        <i class="bi bi-arrow-left me-1"></i>Back to Portal Dashboard
-      </a>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small mb-1">
+          <li class="breadcrumb-item"><a href="/portal/" class="text-decoration-none">My Portal</a></li>
+          <li class="breadcrumb-item active">My Invoices</li>
+        </ol>
+      </nav>
       <h2 class="h3 fw-bold mb-0">My Invoices</h2>
       <p class="text-muted small mb-0 mt-1">View billing records, print tax invoices, and pay outstanding balances.</p>
     </div>
+    <a href="/portal/" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Back to Overview
+    </a>
   </div>
 
-  <!-- Invoices Table Card -->
-  <div class="card shadow-sm border-0">
+  <!-- Invoices Table -->
+  <div class="card border-0 shadow-sm rounded-4">
     <div class="card-body p-0">
       {% if invoices %}
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
-            <thead class="table-light small text-muted text-uppercase">
+            <thead class="table-light text-uppercase" style="font-size:0.72rem;">
               <tr>
-                <th class="ps-3">Invoice #</th>
+                <th class="ps-4">Invoice #</th>
                 <th>Invoice Date</th>
                 <th>Due Date</th>
                 <th>Billing Period</th>
-                <th class="text-end">Total Amount</th>
-                <th class="text-end">Paid Amount</th>
-                <th class="text-end">Balance Due</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Paid</th>
+                <th class="text-end">Balance</th>
                 <th class="text-center">Status</th>
-                <th class="text-end pe-3">Actions</th>
+                <th class="text-end pe-4">Actions</th>
               </tr>
             </thead>
             <tbody>
               {% for inv in invoices %}
                 {% with d_status=inv|derived_status bal=inv|invoice_balance %}
-                  <tr>
-                    <!-- Invoice Number -->
-                    <td class="ps-3 fw-semibold">
-                      <a href="/invoices/{{ inv.number|default:inv.id }}/" class="text-decoration-none text-primary">
-                        {{ inv.number|default:"(Draft Invoice)" }}
+                <tr>
+                  <td class="ps-4 fw-semibold">
+                    <a href="/invoices/{{ inv.number|default:inv.id }}/" class="text-decoration-none text-primary">
+                      {{ inv.number|default:"(Draft)" }}
+                    </a>
+                  </td>
+
+                  <td class="small text-muted">{{ inv.invoice_date|date:"d M Y" }}</td>
+
+                  <td class="small {% if d_status == 'overdue' %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                    {{ inv.due_date|date:"d M Y" }}
+                    {% if d_status == 'overdue' %}
+                      <div style="font-size:0.7rem;" class="text-danger">
+                        <i class="bi bi-exclamation-circle me-1"></i>{{ inv.due_date|overdue_days }}d overdue
+                      </div>
+                    {% endif %}
+                  </td>
+
+                  <td class="small text-muted text-nowrap">
+                    {{ inv.period_start|date:"d M" }} – {{ inv.period_end|date:"d M Y" }}
+                  </td>
+
+                  <td class="text-end fw-semibold small font-monospace">{{ inv.total|money }}</td>
+                  <td class="text-end text-success small font-monospace">{{ inv.amount_paid|money }}</td>
+                  <td class="text-end fw-bold small font-monospace {% if bal > 0 %}text-danger{% else %}text-muted{% endif %}">
+                    {{ bal|money }}
+                  </td>
+
+                  <td class="text-center">
+                    {% include "partials/_status_badge.html" with status=d_status %}
+                  </td>
+
+                  <td class="text-end pe-4 text-nowrap">
+                    {% if inv.status == 'confirmed' and bal > 0 %}
+                      <a href="{% url 'portal:invoice_pay' inv.number|default:inv.id %}"
+                         class="btn btn-sm btn-success fw-semibold py-0 px-2 me-1">
+                        <i class="bi bi-credit-card me-1"></i>Pay
                       </a>
-                    </td>
-
-                    <!-- Invoice Date -->
-                    <td class="small text-muted">{{ inv.invoice_date|date:"d M Y" }}</td>
-
-                    <!-- Due Date -->
-                    <td class="small {% if d_status == 'overdue' %}text-danger fw-bold{% else %}text-muted{% endif %}">
-                      {{ inv.due_date|date:"d M Y" }}
-                      {% if d_status == 'overdue' %}
-                        <span class="badge bg-danger ms-1">{{ inv.due_date|overdue_days }}d overdue</span>
-                      {% endif %}
-                    </td>
-
-                    <!-- Coverage Period -->
-                    <td class="small text-muted">
-                      {{ inv.period_start|date:"d M" }} &ndash; {{ inv.period_end|date:"d M Y" }}
-                    </td>
-
-                    <!-- Total Amount -->
-                    <td class="text-end fw-semibold text-dark">{{ inv.total|money }}</td>
-
-                    <!-- Amount Paid -->
-                    <td class="text-end text-success small">{{ inv.amount_paid|money }}</td>
-
-                    <!-- Balance Due -->
-                    <td class="text-end fw-bold {% if bal > 0 %}text-danger{% else %}text-muted{% endif %}">
-                      {{ bal|money }}
-                    </td>
-
-                    <!-- Status -->
-                    <td class="text-center">
-                      {% include "partials/_status_badge.html" with status=d_status %}
-                    </td>
-
-                    <!-- Actions -->
-                    <td class="text-end pe-3 text-nowrap">
-                      {% if inv.status == 'confirmed' and bal > 0 %}
-                        <a href="{% url 'portal:invoice_pay' inv.number|default:inv.id %}" class="btn btn-sm btn-success py-0 px-2 me-1">
-                          <i class="bi bi-credit-card me-1"></i>Pay Now
-                        </a>
-                      {% endif %}
-
-                      <a href="/invoices/{{ inv.number|default:inv.id }}/print/" target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Print Invoice">
-                        <i class="bi bi-printer"></i>
-                      </a>
-                    </td>
-                  </tr>
+                    {% endif %}
+                    <a href="/invoices/{{ inv.number|default:inv.id }}/print/" target="_blank"
+                       class="btn btn-sm btn-outline-secondary py-0 px-2" title="Print / Download PDF">
+                      <i class="bi bi-printer"></i>
+                    </a>
+                  </td>
+                </tr>
                 {% endwith %}
               {% endfor %}
             </tbody>
           </table>
         </div>
       {% else %}
-        <div class="p-5 text-center text-muted">
-          {% include "partials/_empty_state.html" with title="No Invoices" message="You do not have any invoices at this time." %}
+        <div class="p-5 text-center">
+          {% include "partials/_empty_state.html" with title="No Invoices" message="You do not have any invoices at this time." icon="bi-file-earmark-text" %}
         </div>
       {% endif %}
     </div>
   </div>
+
 </div>
 {% endblock %}

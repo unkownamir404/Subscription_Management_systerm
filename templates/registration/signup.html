@@ -1,87 +1,167 @@
 {% extends "base.html" %}
 
-{% block title %}Sign Up - Brightloop{% endblock %}
+{% block title %}Create Account – Brightloop{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-        <div class="card shadow-sm border-0 mt-4">
-            <div class="card-body p-4">
-                <h3 class="card-title fw-bold text-center mb-3">Create an Account</h3>
-                <p class="text-muted text-center mb-4">Start managing your Brightloop subscriptions</p>
-
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {% for error in form.non_field_errors %}
-                                <p class="mb-0">{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    <div class="mb-3">
-                        <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">{{ form.email.label }}</label>
-                        {{ form.email }}
-                        {% if form.email.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.email.errors %}{{ error }}{% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">{{ form.name.label }}</label>
-                        {{ form.name }}
-                        {% if form.name.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.name.errors %}{{ error }}{% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="{{ form.company.id_for_label }}" class="form-label fw-semibold">{{ form.company.label }} (Optional)</label>
-                        {{ form.company }}
-                        {% if form.company.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.company.errors %}{{ error }}{% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="{{ form.password.id_for_label }}" class="form-label fw-semibold">{{ form.password.label }}</label>
-                        {{ form.password }}
-                        {% if form.password.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.password.errors %}{{ error }}{% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="form-text small">{{ form.password.help_text }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="{{ form.password_confirm.id_for_label }}" class="form-label fw-semibold">{{ form.password_confirm.label }}</label>
-                        {{ form.password_confirm }}
-                        {% if form.password_confirm.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.password_confirm.errors %}{{ error }}{% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Create Account</button>
-                </form>
-
-                <div class="text-center mt-3">
-                    <span class="text-muted small">Already have an account?</span>
-                    <a href="{% url 'login' %}" class="small fw-semibold text-decoration-none">Sign in</a>
-                </div>
-            </div>
-        </div>
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5" style="background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%);">
+  <div class="container" style="max-width: 480px;">
+    <!-- Brand Header -->
+    <div class="text-center mb-4">
+      <div class="brand-badge mx-auto mb-3" style="width:56px;height:56px;font-size:1.5rem;">
+        <i class="bi bi-infinity"></i>
+      </div>
+      <h2 class="fw-bold mb-1" style="color:var(--brand-primary);">Create your account</h2>
+      <p class="text-muted small mb-0">Start managing subscriptions with Brightloop</p>
     </div>
+
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="card-body p-4 p-md-5">
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {% for error in form.non_field_errors %}<span>{{ error }}</span>{% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <!-- Email -->
+          <div class="mb-3">
+            <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold small">
+              Email Address <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
+              <input type="email" name="email"
+                     class="form-control border-start-0 {% if form.email.errors %}is-invalid{% endif %}"
+                     id="{{ form.email.id_for_label }}"
+                     placeholder="you@company.com"
+                     value="{{ form.email.value|default:'' }}"
+                     autocomplete="email" required>
+              {% if form.email.errors %}
+                <div class="invalid-feedback">{% for e in form.email.errors %}{{ e }}{% endfor %}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Full Name -->
+          <div class="mb-3">
+            <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold small">
+              Full Name <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
+              <input type="text" name="name"
+                     class="form-control border-start-0 {% if form.name.errors %}is-invalid{% endif %}"
+                     id="{{ form.name.id_for_label }}"
+                     placeholder="Jane Smith"
+                     value="{{ form.name.value|default:'' }}"
+                     autocomplete="name" required>
+              {% if form.name.errors %}
+                <div class="invalid-feedback">{% for e in form.name.errors %}{{ e }}{% endfor %}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Company (optional) -->
+          <div class="mb-3">
+            <label for="{{ form.company.id_for_label }}" class="form-label fw-semibold small">
+              Company <span class="text-muted fw-normal">(optional)</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-building text-muted"></i></span>
+              <input type="text" name="company"
+                     class="form-control border-start-0 {% if form.company.errors %}is-invalid{% endif %}"
+                     id="{{ form.company.id_for_label }}"
+                     placeholder="Acme Corp"
+                     value="{{ form.company.value|default:'' }}"
+                     autocomplete="organization">
+              {% if form.company.errors %}
+                <div class="invalid-feedback">{% for e in form.company.errors %}{{ e }}{% endfor %}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="mb-3">
+            <label for="{{ form.password.id_for_label }}" class="form-label fw-semibold small">
+              Password <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
+              <input type="password" name="password"
+                     class="form-control border-start-0 {% if form.password.errors %}is-invalid{% endif %}"
+                     id="{{ form.password.id_for_label }}"
+                     placeholder="Min 9 chars, upper + lower + symbol"
+                     autocomplete="new-password" required>
+              <button class="btn btn-light border border-start-0" type="button" onclick="togglePwd('{{ form.password.id_for_label }}',this)" tabindex="-1">
+                <i class="bi bi-eye"></i>
+              </button>
+              {% if form.password.errors %}
+                <div class="invalid-feedback d-block">{% for e in form.password.errors %}{{ e }}{% endfor %}</div>
+              {% else %}
+                <div class="form-text mt-1 small">{{ form.password.help_text }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="mb-4">
+            <label for="{{ form.password_confirm.id_for_label }}" class="form-label fw-semibold small">
+              Confirm Password <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-lock text-muted"></i></span>
+              <input type="password" name="password_confirm"
+                     class="form-control border-start-0 {% if form.password_confirm.errors %}is-invalid{% endif %}"
+                     id="{{ form.password_confirm.id_for_label }}"
+                     placeholder="Repeat your password"
+                     autocomplete="new-password" required>
+              {% if form.password_confirm.errors %}
+                <div class="invalid-feedback">{% for e in form.password_confirm.errors %}{{ e }}{% endfor %}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Password strength indicators -->
+          <div class="mb-4 p-3 bg-light rounded-3 small text-muted">
+            <div class="fw-semibold text-dark mb-2"><i class="bi bi-shield-check me-1 text-primary"></i>Password Requirements</div>
+            <div class="row g-1">
+              <div class="col-6"><i class="bi bi-check-circle text-success me-1"></i>9+ characters</div>
+              <div class="col-6"><i class="bi bi-check-circle text-success me-1"></i>Uppercase letter</div>
+              <div class="col-6"><i class="bi bi-check-circle text-success me-1"></i>Lowercase letter</div>
+              <div class="col-6"><i class="bi bi-check-circle text-success me-1"></i>Special character</div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold rounded-3"
+                  style="background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%); border: none;">
+            <i class="bi bi-person-plus me-2"></i>Create Account
+          </button>
+        </form>
+
+        <div class="text-center mt-4 pt-3 border-top">
+          <span class="text-muted small">Already have an account?</span>
+          <a href="{% url 'login' %}" class="small fw-semibold text-decoration-none ms-1" style="color:var(--brand-primary);">Sign in →</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-center text-muted mt-4" style="font-size:0.75rem;">
+      <i class="bi bi-shield-lock me-1"></i>Your data is encrypted and never shared.
+    </p>
+  </div>
 </div>
+
+<script>
+function togglePwd(fieldId, btn) {
+  const f = document.getElementById(fieldId);
+  if (!f) return;
+  const isText = f.type === 'text';
+  f.type = isText ? 'password' : 'text';
+  btn.innerHTML = isText ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+}
+</script>
 {% endblock %}

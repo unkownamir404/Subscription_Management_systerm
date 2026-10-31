@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Customer — {{ form.instance.name }} — Brightloop{% endblock %}
+{% block title %}{% if form.instance.id %}Edit Customer — {{ form.instance.name }}{% else %}New Customer{% endif %} — Brightloop{% endblock %}
 
 {% block content %}
 <div class="container py-4" style="max-width: 700px;">
@@ -9,15 +9,22 @@
     <ol class="breadcrumb small text-muted">
       <li class="breadcrumb-item"><a href="/reports/" class="text-decoration-none">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="/customers/" class="text-decoration-none">Customers</a></li>
-      <li class="breadcrumb-item"><a href="/customers/{{ form.instance.id }}/" class="text-decoration-none">{{ form.instance.name }}</a></li>
-      <li class="breadcrumb-item active">Edit</li>
+      {% if form.instance.id %}
+        <li class="breadcrumb-item"><a href="/customers/{{ form.instance.id }}/" class="text-decoration-none">{{ form.instance.name }}</a></li>
+        <li class="breadcrumb-item active">Edit</li>
+      {% else %}
+        <li class="breadcrumb-item active">New Customer</li>
+      {% endif %}
     </ol>
   </nav>
 
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-primary text-white py-3">
-      <h5 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Customer Profile</h5>
-      <small class="opacity-75">Update contact details, company name, and tax configuration.</small>
+      <h5 class="mb-0 fw-bold">
+        <i class="bi bi-{% if form.instance.id %}pencil-square{% else %}person-plus-fill{% endif %} me-2"></i>
+        {% if form.instance.id %}Edit Customer Profile{% else %}Create New Customer{% endif %}
+      </h5>
+      <small class="opacity-75">{% if form.instance.id %}Update contact details, company name, and tax configuration.{% else %}Enter contact details, company information, and billing address.{% endif %}</small>
     </div>
     <div class="card-body p-4">
       <form method="post" novalidate>
@@ -26,7 +33,7 @@
         <div class="mb-3">
           <label for="id_name" class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>
           <input type="text" class="form-control {% if form.name.errors %}is-invalid{% endif %}"
-                 id="id_name" name="name" value="{{ form.name.value|default:'' }}" required>
+                 id="id_name" name="name" value="{{ form.name.value|default:'' }}" required placeholder="e.g. Acme Corp or John Doe">
           {% for err in form.name.errors %}
             <div class="invalid-feedback">{{ err }}</div>
           {% endfor %}
@@ -35,7 +42,7 @@
         <div class="mb-3">
           <label for="id_company" class="form-label fw-semibold">Company / Organization</label>
           <input type="text" class="form-control {% if form.company.errors %}is-invalid{% endif %}"
-                 id="id_company" name="company" value="{{ form.company.value|default:'' }}">
+                 id="id_company" name="company" value="{{ form.company.value|default:'' }}" placeholder="Optional organization name">
           {% for err in form.company.errors %}
             <div class="invalid-feedback">{{ err }}</div>
           {% endfor %}
@@ -45,7 +52,7 @@
           <div class="col-md-6">
             <label for="id_phone" class="form-label fw-semibold">Phone Number</label>
             <input type="text" class="form-control {% if form.phone.errors %}is-invalid{% endif %}"
-                   id="id_phone" name="phone" value="{{ form.phone.value|default:'' }}">
+                   id="id_phone" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="+1 555-0100">
             {% for err in form.phone.errors %}
               <div class="invalid-feedback">{{ err }}</div>
             {% endfor %}
@@ -53,7 +60,7 @@
           <div class="col-md-6">
             <label for="id_tax_id" class="form-label fw-semibold">Tax ID / GSTIN</label>
             <input type="text" class="form-control {% if form.tax_id.errors %}is-invalid{% endif %}"
-                   id="id_tax_id" name="tax_id" value="{{ form.tax_id.value|default:'' }}">
+                   id="id_tax_id" name="tax_id" value="{{ form.tax_id.value|default:'' }}" placeholder="e.g. 29ABCDE1234F1Z5">
             {% for err in form.tax_id.errors %}
               <div class="invalid-feedback">{{ err }}</div>
             {% endfor %}
@@ -63,17 +70,17 @@
         <div class="mb-4">
           <label for="id_billing_address" class="form-label fw-semibold">Billing Address</label>
           <textarea class="form-control {% if form.billing_address.errors %}is-invalid{% endif %}"
-                    id="id_billing_address" name="billing_address" rows="3">{{ form.billing_address.value|default:'' }}</textarea>
+                    id="id_billing_address" name="billing_address" rows="3" placeholder="Street address, City, State, Country">{{ form.billing_address.value|default:'' }}</textarea>
           {% for err in form.billing_address.errors %}
             <div class="invalid-feedback">{{ err }}</div>
           {% endfor %}
         </div>
 
         <div class="d-flex gap-2">
-          <button type="submit" class="btn btn-primary px-4">
-            <i class="bi bi-check-lg me-1"></i>Save Changes
+          <button type="submit" class="btn btn-primary px-4 fw-semibold">
+            <i class="bi bi-check-lg me-1"></i>{% if form.instance.id %}Save Changes{% else %}Create Customer{% endif %}
           </button>
-          <a href="/customers/{{ form.instance.id }}/" class="btn btn-outline-secondary">Cancel</a>
+          <a href="{% if form.instance.id %}/customers/{{ form.instance.id }}/{% else %}/customers/{% endif %}" class="btn btn-outline-secondary">Cancel</a>
         </div>
       </form>
     </div>

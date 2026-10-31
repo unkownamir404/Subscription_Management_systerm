@@ -1,28 +1,28 @@
 {% comment %}
-Shared Status Badge Partial
+Shared Modern Status Badge Partial
 Usage: {% include 'partials/_status_badge.html' with status=item.status %}
 Optional: with custom_label="Label Text"
 {% endcomment %}
 {% with s=status|lower %}
   {% if s == 'active' or s == 'paid' or s == 'created' %}
-    <span class="badge bg-success text-white">{{ custom_label|default:status|title }}</span>
+    <span class="badge-status badge-status-success"><span class="status-dot"></span>{{ custom_label|default:status|title }}</span>
   {% elif s == 'confirmed' %}
-    <span class="badge bg-primary text-white">{{ custom_label|default:status|title }}</span>
+    <span class="badge-status badge-status-primary"><span class="status-dot"></span>{{ custom_label|default:status|title }}</span>
   {% elif s == 'quotation' %}
-    <span class="badge bg-info text-dark">{{ custom_label|default:status|title }}</span>
+    <span class="badge-status badge-status-warning"><span class="status-dot"></span>{{ custom_label|default:status|title }}</span>
   {% elif s == 'paused' %}
-    <span class="badge bg-warning text-dark">{{ custom_label|default:status|title }}</span>
+    <span class="badge-status badge-status-warning"><span class="status-dot"></span>{{ custom_label|default:status|title }}</span>
   {% elif s == 'draft' %}
-    <span class="badge bg-secondary text-white">{{ custom_label|default:status|title }}</span>
+    <span class="badge-status badge-status-neutral"><span class="status-dot"></span>{{ custom_label|default:status|title }}</span>
   {% elif s == 'closed' %}
-    <span class="badge bg-dark text-white">{{ custom_label|default:status|title }}</span>
+    <span class="badge-status badge-status-dark"><span class="status-dot"></span>{{ custom_label|default:status|title }}</span>
   {% elif s == 'overdue' or s == 'failed' %}
-    <span class="badge bg-danger text-white">{{ custom_label|default:status|title }}</span>
+    <span class="badge-status badge-status-danger"><span class="status-dot"></span>{{ custom_label|default:status|title }}</span>
   {% elif s == 'cancelled' %}
-    <span class="badge bg-danger bg-opacity-75 text-white">{{ custom_label|default:status|title }}</span>
+    <span class="badge-status badge-status-danger"><span class="status-dot"></span>{{ custom_label|default:status|title }}</span>
   {% elif s == 'partially_paid' or s == 'partially paid' %}
-    <span class="badge bg-info bg-opacity-75 text-dark">{{ custom_label|default:"Partially Paid" }}</span>
+    <span class="badge-status badge-status-info"><span class="status-dot"></span>{{ custom_label|default:"Partially Paid" }}</span>
   {% else %}
-    <span class="badge bg-light text-dark border">{{ custom_label|default:status|title }}</span>
+    <span class="badge-status badge-status-neutral"><span class="status-dot"></span>{{ custom_label|default:status|title }}</span>
   {% endif %}
 {% endwith %}

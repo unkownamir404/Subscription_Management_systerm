@@ -4,243 +4,336 @@
 {% block title %}Executive Finance Dashboard{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-2">
-  <div>
-    <h2 class="fw-bold mb-1 text-dark">Finance & Revenue Dashboard</h2>
-    <p class="text-muted small mb-0">Real-time subscription metrics, recurring revenue, and aging ledger.</p>
-  </div>
-  <div class="d-flex gap-2">
-    <a href="/billing/run/" class="btn btn-primary btn-sm">
-      <i class="bi bi-play-circle me-1"></i>Run Billing
-    </a>
-    <a href="/billing/coverage/" class="btn btn-outline-secondary btn-sm">
-      <i class="bi bi-shield-check me-1"></i>Coverage Check
-    </a>
-  </div>
-</div>
+<div class="container-fluid py-2">
+  <!-- Hero Section -->
+  <div class="d-flex flex-column flex-xl-row justify-content-between align-items-start align-items-xl-center mb-4 pb-3 border-bottom gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <h2 class="h3 fw-bold mb-0 text-dark">Finance & Revenue Dashboard</h2>
+        <span class="badge-status badge-status-success"><span class="status-dot"></span>Live Engine</span>
+      </div>
+      <p class="text-muted small mb-0">
+        Enterprise subscription telemetry, recurring revenue normalization, and automated aging ledger.
+      </p>
+    </div>
 
-<!-- Filter Bar -->
-<div class="card mb-4 shadow-sm">
-  <div class="card-body py-3">
-    <form method="get" action="/reports/" class="row g-2 align-items-end">
-      <div class="col-12 col-sm-6 col-md-3">
-        <label for="date_from" class="form-label small fw-medium mb-1">From Date</label>
-        <input type="date" id="date_from" name="date_from" class="form-control form-control-sm" value="{{ filters.date_from }}">
-      </div>
-      <div class="col-12 col-sm-6 col-md-3">
-        <label for="date_to" class="form-label small fw-medium mb-1">To Date</label>
-        <input type="date" id="date_to" name="date_to" class="form-control form-control-sm" value="{{ filters.date_to }}">
-      </div>
-      <div class="col-12 col-sm-6 col-md-2">
-        <label for="status" class="form-label small fw-medium mb-1">Subscription Status</label>
-        <select id="status" name="status" class="form-select form-select-sm">
-          <option value="" {% if not filters.status %}selected{% endif %}>All Statuses</option>
-          <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Active</option>
-          <option value="paused" {% if filters.status == 'paused' %}selected{% endif %}>Paused</option>
-          <option value="closed" {% if filters.status == 'closed' %}selected{% endif %}>Closed</option>
-          <option value="confirmed" {% if filters.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
-        </select>
-      </div>
-      <div class="col-12 col-sm-6 col-md-2">
-        <label for="customer" class="form-label small fw-medium mb-1">Customer Search</label>
-        <input type="text" id="customer" name="customer" class="form-control form-control-sm" placeholder="Company or Name..." value="{{ filters.customer }}">
-      </div>
-      <div class="col-12 col-md-2 d-flex gap-2">
-        <button type="submit" class="btn btn-primary btn-sm w-100">
-          <i class="bi bi-filter me-1"></i>Filter
-        </button>
-        <a href="/reports/" class="btn btn-outline-secondary btn-sm" title="Clear Filters">
-          <i class="bi bi-x-circle"></i>
-        </a>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- KPI Summary Cards -->
-<div class="row g-3 mb-4">
-  <div class="col-12 col-sm-6 col-lg-3">
-    <div class="card h-100 p-3 kpi-card shadow-sm">
-      <div class="kpi-label">Monthly Recurring Revenue</div>
-      <div class="kpi-value text-primary mt-1">{{ summary.mrr|money }}</div>
-      <div class="small text-muted mt-2">
-        <span class="fw-semibold">ARR:</span> {{ summary.arr|money }}
-      </div>
+    <!-- Quick Action Launcher Toolbar -->
+    <div class="d-flex flex-wrap gap-2">
+      <a href="/billing/run/" class="btn btn-primary btn-sm px-3 shadow-sm">
+        <i class="bi bi-play-circle-fill me-1"></i>Run Billing Engine
+      </a>
+      <a href="/billing/coverage/" class="btn btn-outline-primary btn-sm px-3">
+        <i class="bi bi-shield-check me-1"></i>Coverage Audit
+      </a>
+      <a href="/reports/financial/" class="btn btn-outline-secondary btn-sm px-3">
+        <i class="bi bi-table me-1"></i>Periodic Summaries
+      </a>
+      <a href="/reports/export/?type=revenue" class="btn btn-outline-secondary btn-sm px-3" title="Download Revenue Rollup CSV">
+        <i class="bi bi-download me-1"></i>Export CSV
+      </a>
     </div>
   </div>
 
-  <div class="col-12 col-sm-6 col-lg-3">
-    <div class="card h-100 p-3 shadow-sm border-start border-success border-4">
-      <div class="kpi-label">Revenue Collected</div>
-      <div class="kpi-value text-success mt-1">{{ summary.revenue_collected|money }}</div>
-      <div class="small text-muted mt-2">
-        <span class="fw-semibold">Total Billed:</span> {{ summary.billed|money }}
-      </div>
+  <!-- Filter Card -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body p-3">
+      <form method="get" action="/reports/" class="row g-2 align-items-end">
+        <div class="col-12 col-sm-6 col-md-3">
+          <label for="date_from" class="form-label extra-small fw-semibold text-uppercase text-muted mb-1">From Date</label>
+          <input type="date" id="date_from" name="date_from" class="form-control form-control-sm" value="{{ filters.date_from }}">
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          <label for="date_to" class="form-label extra-small fw-semibold text-uppercase text-muted mb-1">To Date</label>
+          <input type="date" id="date_to" name="date_to" class="form-control form-control-sm" value="{{ filters.date_to }}">
+        </div>
+        <div class="col-12 col-sm-6 col-md-2">
+          <label for="status" class="form-label extra-small fw-semibold text-uppercase text-muted mb-1">Subscription Status</label>
+          <select id="status" name="status" class="form-select form-select-sm">
+            <option value="" {% if not filters.status %}selected{% endif %}>All Statuses</option>
+            <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Active</option>
+            <option value="paused" {% if filters.status == 'paused' %}selected{% endif %}>Paused</option>
+            <option value="closed" {% if filters.status == 'closed' %}selected{% endif %}>Closed</option>
+            <option value="confirmed" {% if filters.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+          </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-2">
+          <label for="customer" class="form-label extra-small fw-semibold text-uppercase text-muted mb-1">Customer / Company</label>
+          <input type="text" id="customer" name="customer" class="form-control form-control-sm" placeholder="Company or Name..." value="{{ filters.customer }}">
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm w-100 fw-semibold">
+            <i class="bi bi-funnel me-1"></i>Apply Filter
+          </button>
+          {% if filters.date_from or filters.date_to or filters.status or filters.customer %}
+            <a href="/reports/" class="btn btn-outline-secondary btn-sm" title="Reset Filters">
+              <i class="bi bi-x-circle"></i>
+            </a>
+          {% endif %}
+        </div>
+      </form>
     </div>
   </div>
 
-  <div class="col-12 col-sm-6 col-lg-3">
-    <div class="card h-100 p-3 shadow-sm border-start border-warning border-4">
-      <div class="kpi-label">Outstanding Balance</div>
-      <div class="kpi-value text-warning mt-1">{{ summary.outstanding|money }}</div>
-      <div class="small text-muted mt-2">
-        <span class="fw-semibold">Overdue Invoices:</span> {{ summary.overdue_count }} ({{ summary.overdue_amount|money }})
+  <!-- Elevated Top Tier KPI Summary Cards -->
+  <div class="row g-3 mb-4">
+    <!-- MRR & ARR -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="kpi-card kpi-card-primary h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="kpi-label">Monthly Recurring Revenue</div>
+          <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 extra-small">Normalized</span>
+        </div>
+        <div class="kpi-value text-primary font-mono">{{ summary.mrr|money }}</div>
+        <div class="d-flex align-items-center justify-content-between mt-3 pt-2 border-top">
+          <span class="small text-muted"><strong class="text-dark">ARR:</strong> {{ summary.arr|money }}</span>
+          <a href="/subscriptions/?status=active" class="extra-small text-primary text-decoration-none fw-semibold">
+            View Active &rarr;
+          </a>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="col-12 col-sm-6 col-lg-3">
-    <div class="card h-100 p-3 shadow-sm border-start border-info border-4">
-      <div class="kpi-label">Active Subscriptions</div>
-      <div class="kpi-value text-dark mt-1">{{ summary.active_subscriptions }}</div>
-      <div class="small text-muted mt-2">
-        <span class="fw-semibold">Paused:</span> {{ summary.paused_subscriptions }}
+    <!-- Revenue Collected & Total Billed -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="kpi-card kpi-card-success h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="kpi-label">Revenue Collected</div>
+          <i class="bi bi-check-circle-fill text-success fs-5"></i>
+        </div>
+        <div class="kpi-value text-success font-mono">{{ summary.revenue_collected|money }}</div>
+        <div class="d-flex align-items-center justify-content-between mt-3 pt-2 border-top">
+          <span class="small text-muted"><strong class="text-dark">Total Billed:</strong> {{ summary.billed|money }}</span>
+          <a href="/invoices/?status=paid" class="extra-small text-success text-decoration-none fw-semibold">
+            Settled Invoices &rarr;
+          </a>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Charts & Aging Breakdown -->
-<div class="row g-4 mb-4">
-  <div class="col-12 col-lg-7">
-    <div class="card h-100 shadow-sm">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-clock-history me-2 text-danger"></i>Overdue Aging Buckets</span>
-        <span class="badge bg-danger bg-opacity-10 text-danger">Total: {{ summary.overdue_amount|money }}</span>
+    <!-- Outstanding Balance & Overdue Count -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="kpi-card kpi-card-warning h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="kpi-label">Outstanding Balance</div>
+          {% if summary.overdue_count > 0 %}
+            <span class="badge-status badge-status-danger extra-small">{{ summary.overdue_count }} Overdue</span>
+          {% else %}
+            <span class="badge-status badge-status-success extra-small">In Good Standing</span>
+          {% endif %}
+        </div>
+        <div class="kpi-value text-warning font-mono">{{ summary.outstanding|money }}</div>
+        <div class="d-flex align-items-center justify-content-between mt-3 pt-2 border-top">
+          <span class="small text-muted"><strong class="text-danger">Overdue:</strong> {{ summary.overdue_amount|money }}</span>
+          <a href="/invoices/?status=overdue" class="extra-small text-danger text-decoration-none fw-semibold">
+            Resolve Overdue &rarr;
+          </a>
+        </div>
       </div>
-      <div class="card-body">
-        <div style="height: 250px;">
-          <canvas id="ageingChart"></canvas>
+    </div>
+
+    <!-- Active Subscriptions -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="kpi-card kpi-card-info h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="kpi-label">Active Subscriptions</div>
+          <i class="bi bi-arrow-repeat text-info fs-5"></i>
+        </div>
+        <div class="kpi-value text-dark font-mono">{{ summary.active_subscriptions }}</div>
+        <div class="d-flex align-items-center justify-content-between mt-3 pt-2 border-top">
+          <span class="small text-muted"><strong class="text-dark">Paused:</strong> {{ summary.paused_subscriptions }}</span>
+          <a href="/subscriptions/" class="extra-small text-primary text-decoration-none fw-semibold">
+            All Subscriptions &rarr;
+          </a>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="col-12 col-lg-5">
-    <div class="card h-100 shadow-sm">
-      <div class="card-header">
-        <i class="bi bi-pie-chart me-2 text-primary"></i>Subscription Status Distribution
-      </div>
-      <div class="card-body d-flex flex-column justify-content-center">
-        <ul class="list-group list-group-flush small">
-          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span><i class="bi bi-circle-fill text-success me-2"></i>Active Subscriptions</span>
-            <span class="fw-bold">{{ summary.active_subscriptions }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span><i class="bi bi-circle-fill text-warning me-2"></i>Paused Subscriptions</span>
-            <span class="fw-bold">{{ summary.paused_subscriptions }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span><i class="bi bi-circle-fill text-danger me-2"></i>Overdue Invoices</span>
-            <span class="fw-bold text-danger">{{ summary.overdue_count }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span><i class="bi bi-cash-stack text-primary me-2"></i>Avg Revenue per Account</span>
-            <span class="fw-bold">{% if summary.active_subscriptions > 0 %}₹3,320.00{% else %}₹0.00{% endif %}</span>
-          </li>
-        </ul>
+  <!-- Charts & Visual Breakdown -->
+  <div class="row g-4 mb-4">
+    <!-- Overdue Aging Buckets Chart -->
+    <div class="col-12 col-lg-7">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-clock-history text-danger fs-5"></i>
+            <div>
+              <h6 class="mb-0 fw-bold">Overdue Invoices Aging Buckets</h6>
+              <span class="extra-small text-muted">Risk distribution by delinquency days</span>
+            </div>
+          </div>
+          <span class="badge-status badge-status-danger">Total: {{ summary.overdue_amount|money }}</span>
+        </div>
+        <div class="card-body p-4">
+          <div style="height: 240px;">
+            <canvas id="ageingChart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Tables: Overdue Invoices & Recent Payments -->
-<div class="row g-4">
-  <!-- Overdue Invoices Table -->
-  <div class="col-12 col-xl-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-exclamation-octagon me-2 text-danger"></i>Overdue Invoices Requiring Action</span>
-        <span class="badge bg-danger">{{ summary.overdue_count }} Open</span>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead>
-            <tr>
-              <th>Invoice</th>
-              <th>Customer</th>
-              <th>Due Date</th>
-              <th>Overdue</th>
-              <th class="text-end">Balance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for inv in overdue_page_obj %}
-              <tr>
-                <td class="fw-medium">
-                  <a href="/invoices/{{ inv.number }}/" class="text-decoration-none text-primary">
-                    {{ inv.number }}
-                  </a>
-                </td>
-                <td class="text-truncate" style="max-width: 150px;">{{ inv.customer }}</td>
-                <td class="text-muted small">{{ inv.due_date|date:"d M Y" }}</td>
-                <td>
-                  <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">
-                    {{ inv.days_overdue }} days
-                  </span>
-                </td>
-                <td class="text-end fw-bold text-danger">{{ inv.balance|money }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="5" class="text-center text-muted py-3">No overdue invoices found.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="card-footer bg-white border-top-0">
-        {% include "partials/_pagination.html" with page_obj=overdue_page_obj %}
+    <!-- Subscription Status Distribution Matrix -->
+    <div class="col-12 col-lg-5">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-pie-chart text-primary fs-5"></i>
+            <div>
+              <h6 class="mb-0 fw-bold">Subscription Portfolio Health</h6>
+              <span class="extra-small text-muted">Active, paused, and delinquency breakdown</span>
+            </div>
+          </div>
+          <span class="extra-small text-muted">Live Telemetry</span>
+        </div>
+        <div class="card-body p-4 d-flex flex-column justify-content-center">
+          <ul class="list-group list-group-flush small">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+              <span class="d-flex align-items-center"><i class="bi bi-circle-fill text-success me-2" style="font-size: 0.65rem;"></i>Active Subscriptions</span>
+              <span class="fw-bold font-mono">{{ summary.active_subscriptions }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+              <span class="d-flex align-items-center"><i class="bi bi-circle-fill text-warning me-2" style="font-size: 0.65rem;"></i>Paused Subscriptions</span>
+              <span class="fw-bold font-mono">{{ summary.paused_subscriptions }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+              <span class="d-flex align-items-center"><i class="bi bi-circle-fill text-danger me-2" style="font-size: 0.65rem;"></i>Overdue Invoices Requiring Action</span>
+              <span class="fw-bold text-danger font-mono">{{ summary.overdue_count }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+              <span class="d-flex align-items-center"><i class="bi bi-cash-stack text-primary me-2" style="font-size: 0.65rem;"></i>Average Revenue per Account (ARPU)</span>
+              <span class="fw-bold font-mono">{% if summary.active_subscriptions > 0 %}₹ 3,320.00{% else %}₹ 0.00{% endif %}</span>
+            </li>
+          </ul>
+
+          <div class="mt-4 pt-3 border-top d-flex gap-2">
+            <a href="/reports/financial/" class="btn btn-outline-primary btn-sm flex-grow-1">
+              <i class="bi bi-calendar3 me-1"></i>Financial Summaries
+            </a>
+            <a href="/billing/coverage/" class="btn btn-outline-secondary btn-sm flex-grow-1">
+              <i class="bi bi-shield-check me-1"></i>Coverage Audit
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Recent Payments Table -->
-  <div class="col-12 col-xl-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-cash-coin me-2 text-success"></i>Recent Payments Recorded</span>
-        <span class="badge bg-success">Latest Settled</span>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead>
-            <tr>
-              <th>Invoice</th>
-              <th>Customer</th>
-              <th>Method</th>
-              <th>Date</th>
-              <th class="text-end">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for p in payments_page_obj %}
+  <!-- Operational Ledgers: Overdue Invoices & Recent Payments -->
+  <div class="row g-4">
+    <!-- Overdue Invoices Table -->
+    <div class="col-12 col-xl-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-octagon-fill text-danger fs-5"></i>
+            <div>
+              <h6 class="mb-0 fw-bold">Overdue Invoices Requiring Attention</h6>
+              <span class="extra-small text-muted">Outstanding balances past due date</span>
+            </div>
+          </div>
+          <span class="badge-status badge-status-danger">{{ summary.overdue_count }} Open</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
               <tr>
-                <td class="fw-medium">
-                  <a href="/invoices/{{ p.invoice_number }}/" class="text-decoration-none text-dark">
-                    {{ p.invoice_number }}
-                  </a>
-                </td>
-                <td class="text-truncate" style="max-width: 150px;">{{ p.customer }}</td>
-                <td>
-                  <span class="badge bg-light text-dark border">
-                    {{ p.method|upper }}
-                  </span>
-                </td>
-                <td class="text-muted small">{{ p.paid_on|date:"d M Y" }}</td>
-                <td class="text-end fw-bold text-success">{{ p.amount|money }}</td>
+                <th class="ps-3">Invoice</th>
+                <th>Customer</th>
+                <th>Due Date</th>
+                <th>Delinquency</th>
+                <th class="text-end pe-3">Balance</th>
               </tr>
-            {% empty %}
-              <tr>
-                <td colspan="5" class="text-center text-muted py-3">No recent payments recorded.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {% for inv in overdue_page_obj %}
+                <tr>
+                  <td class="ps-3 fw-semibold">
+                    <a href="/invoices/{{ inv.number }}/" class="text-decoration-none text-primary font-mono">
+                      {{ inv.number }}
+                    </a>
+                  </td>
+                  <td class="text-truncate" style="max-width: 150px;">
+                    <div class="fw-medium text-dark">{{ inv.customer }}</div>
+                  </td>
+                  <td class="text-muted small text-nowrap">{{ inv.due_date|date:"d M Y" }}</td>
+                  <td>
+                    <span class="badge-status badge-status-danger extra-small">
+                      <span class="status-dot"></span>{{ inv.days_overdue }}d overdue
+                    </span>
+                  </td>
+                  <td class="text-end pe-3 fw-bold text-danger font-mono">{{ inv.balance|money }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-4">
+                    <i class="bi bi-check-circle text-success fs-3 d-block mb-1"></i>
+                    No overdue invoices found. All customer accounts are up to date!
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer bg-white border-top-0 px-3 py-2">
+          {% include "partials/_pagination.html" with page_obj=overdue_page_obj %}
+        </div>
       </div>
-      <div class="card-footer bg-white border-top-0">
-        {% include "partials/_pagination.html" with page_obj=payments_page_obj %}
+    </div>
+
+    <!-- Recent Payments Settled Table -->
+    <div class="col-12 col-xl-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-cash-coin text-success fs-5"></i>
+            <div>
+              <h6 class="mb-0 fw-bold">Recent Payments Settled</h6>
+              <span class="extra-small text-muted">Latest customer transactions recorded</span>
+            </div>
+          </div>
+          <span class="badge-status badge-status-success">Recent Inflows</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th class="ps-3">Invoice</th>
+                <th>Customer</th>
+                <th>Method</th>
+                <th>Settled On</th>
+                <th class="text-end pe-3">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in payments_page_obj %}
+                <tr>
+                  <td class="ps-3 fw-semibold">
+                    <a href="/invoices/{{ p.invoice_number }}/" class="text-decoration-none text-dark font-mono">
+                      {{ p.invoice_number }}
+                    </a>
+                  </td>
+                  <td class="text-truncate" style="max-width: 150px;">
+                    <div class="fw-medium text-dark">{{ p.customer }}</div>
+                  </td>
+                  <td>
+                    <span class="badge-status badge-status-neutral extra-small">
+                      {{ p.method|upper }}
+                    </span>
+                  </td>
+                  <td class="text-muted small text-nowrap">{{ p.paid_on|date:"d M Y" }}</td>
+                  <td class="text-end pe-3 fw-bold text-success font-mono">{{ p.amount|money }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-4">No recent payments recorded.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer bg-white border-top-0 px-3 py-2">
+          {% include "partials/_pagination.html" with page_obj=payments_page_obj %}
+        </div>
       </div>
     </div>
   </div>
@@ -253,29 +346,35 @@
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('ageingChart').getContext('2d');
+    
+    // Create gradient fill for bars
+    const grad1 = ctx.createLinearGradient(0, 0, 0, 240);
+    grad1.addColorStop(0, '#f59e0b');
+    grad1.addColorStop(1, '#fbbf24');
+
+    const grad2 = ctx.createLinearGradient(0, 0, 0, 240);
+    grad2.addColorStop(0, '#f43f5e');
+    grad2.addColorStop(1, '#fb7185');
+
+    const grad3 = ctx.createLinearGradient(0, 0, 0, 240);
+    grad3.addColorStop(0, '#991b1b');
+    grad3.addColorStop(1, '#b91c1c');
+
     new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['1-30 Days Overdue', '31-60 Days Overdue', '60+ Days Overdue'],
+        labels: ['1–30 Days Overdue', '31–60 Days Overdue', '60+ Days Critical'],
         datasets: [{
-          label: 'Outstanding Amount (₹)',
+          label: 'Outstanding Balance (₹)',
           data: [
             {{ ageing_1_30|default:12000.00 }},
             {{ ageing_31_60|default:4500.00 }},
             {{ ageing_60_plus|default:1700.00 }}
           ],
-          backgroundColor: [
-            'rgba(245, 158, 11, 0.75)',
-            'rgba(239, 68, 68, 0.75)',
-            'rgba(153, 27, 27, 0.85)'
-          ],
-          borderColor: [
-            '#d97706',
-            '#dc2626',
-            '#991b1b'
-          ],
-          borderWidth: 1,
-          borderRadius: 4
+          backgroundColor: [grad1, grad2, grad3],
+          borderRadius: 8,
+          borderSkipped: false,
+          barThickness: 38
         }]
       },
       options: {
@@ -284,9 +383,14 @@
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: '#0f172a',
+            titleFont: { family: 'Plus Jakarta Sans', size: 13, weight: 'bold' },
+            bodyFont: { family: 'JetBrains Mono', size: 12 },
+            padding: 12,
+            cornerRadius: 8,
             callbacks: {
               label: function(context) {
-                return 'Outstanding: ₹' + context.parsed.y.toLocaleString('en-IN', {minimumFractionDigits: 2});
+                return 'Outstanding: ₹ ' + context.parsed.y.toLocaleString('en-IN', {minimumFractionDigits: 2});
               }
             }
           }
@@ -295,14 +399,22 @@
           y: {
             beginAtZero: true,
             ticks: {
+              font: { family: 'JetBrains Mono', size: 11 },
+              color: '#64748b',
               callback: function(value) {
                 return '₹' + (value / 1000) + 'k';
               }
             },
-            grid: { color: '#f1f5f9' }
+            grid: { color: '#f1f5f9' },
+            border: { display: false }
           },
           x: {
-            grid: { display: false }
+            ticks: {
+              font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' },
+              color: '#475569'
+            },
+            grid: { display: false },
+            border: { display: false }
           }
         }
       }

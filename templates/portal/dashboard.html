@@ -1,63 +1,72 @@
 {% extends "base.html" %}
 {% load ui %}
 
-{% block title %}Customer Portal - Brightloop{% endblock %}
+{% block title %}Customer Portal – {{ customer.name }} – Brightloop{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-  <!-- Welcome Banner -->
-  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+
+  <!-- Hero Welcome Banner -->
+  <div class="rounded-4 p-4 mb-4 text-white d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3"
+       style="background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%);">
     <div>
-      <h2 class="h3 fw-bold mb-1">Welcome, {{ customer.name }}</h2>
-      <p class="text-muted small mb-0">
-        {{ customer.company|default:"Account Overview" }} &bull; Customer Portal Self-Service
-      </p>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center fw-bold text-white"
+             style="width:42px;height:42px;font-size:1.1rem;">{{ customer.name|first|upper }}</div>
+        <div>
+          <h2 class="fw-bold mb-0 fs-4">Welcome back, {{ customer.name }}!</h2>
+          <p class="mb-0 opacity-75 small">
+            {% if customer.company %}{{ customer.company }} · {% endif %}Customer Self-Service Portal
+          </p>
+        </div>
+      </div>
     </div>
-    <div class="d-flex gap-2">
-      <a href="/portal/subscriptions/" class="btn btn-outline-primary btn-sm">
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="/portal/subscriptions/" class="btn btn-light btn-sm fw-semibold text-primary">
         <i class="bi bi-card-checklist me-1"></i>My Subscriptions
       </a>
-      <a href="/portal/invoices/" class="btn btn-primary btn-sm">
+      <a href="/portal/invoices/" class="btn btn-white btn-sm fw-semibold"
+         style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;">
         <i class="bi bi-file-earmark-text me-1"></i>My Invoices
       </a>
     </div>
   </div>
 
-  <!-- KPI Overview Cards -->
+  <!-- KPI Cards -->
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-      <div class="card shadow-sm border-0 border-start border-4 border-success h-100">
-        <div class="card-body p-3">
-          <span class="text-muted small text-uppercase fw-semibold">Active Subscriptions</span>
-          <h3 class="fw-bold text-success mb-0 mt-1">{{ active_subs_count }}</h3>
-          {% if paused_subs_count > 0 %}
-            <span class="text-muted extra-small" style="font-size: 0.75rem;">{{ paused_subs_count }} paused</span>
-          {% endif %}
-        </div>
+      <div class="kpi-card kpi-card-success h-100">
+        <div class="kpi-label">Active Subscriptions</div>
+        <div class="kpi-value text-success">{{ active_subs_count }}</div>
+        {% if paused_subs_count > 0 %}
+          <div class="kpi-sub"><i class="bi bi-pause-circle me-1"></i>{{ paused_subs_count }} paused</div>
+        {% else %}
+          <div class="kpi-sub">All running</div>
+        {% endif %}
       </div>
     </div>
 
     <div class="col-6 col-md-3">
-      <div class="card shadow-sm border-0 border-start border-4 border-warning h-100">
-        <div class="card-body p-3">
-          <span class="text-muted small text-uppercase fw-semibold">Unpaid Invoices</span>
-          <h3 class="fw-bold text-warning-emphasis mb-0 mt-1">{{ unpaid_count }}</h3>
-          <span class="text-muted extra-small" style="font-size: 0.75rem;">Awaiting payment</span>
-        </div>
+      <div class="kpi-card kpi-card-warning h-100">
+        <div class="kpi-label">Unpaid Invoices</div>
+        <div class="kpi-value" style="color:var(--bs-warning-text-emphasis);">{{ unpaid_count }}</div>
+        <div class="kpi-sub">Awaiting payment</div>
       </div>
     </div>
 
     <div class="col-12 col-md-6">
-      <div class="card shadow-sm border-0 border-start border-4 border-danger h-100">
-        <div class="card-body p-3 d-flex justify-content-between align-items-center">
+      <div class="kpi-card h-100 {% if outstanding_balance > 0 %}kpi-card-danger{% else %}kpi-card-success{% endif %}">
+        <div class="d-flex justify-content-between align-items-start">
           <div>
-            <span class="text-muted small text-uppercase fw-semibold">Total Outstanding Balance</span>
-            <h3 class="fw-bold text-danger mb-0 mt-1">{{ outstanding_balance|money }}</h3>
-            <span class="text-muted extra-small" style="font-size: 0.75rem;">Due across all confirmed invoices</span>
+            <div class="kpi-label">Outstanding Balance</div>
+            <div class="kpi-value {% if outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %} font-monospace">
+              {{ outstanding_balance|money }}
+            </div>
+            <div class="kpi-sub">Across all confirmed invoices</div>
           </div>
           {% if unpaid_count > 0 %}
-            <a href="/portal/invoices/" class="btn btn-sm btn-danger px-3">
-              <i class="bi bi-credit-card me-1"></i>Pay Due Balance
+            <a href="/portal/invoices/" class="btn btn-sm btn-danger px-3 fw-semibold align-self-center">
+              <i class="bi bi-credit-card me-1"></i>Pay Now
             </a>
           {% endif %}
         </div>
@@ -65,202 +74,154 @@
     </div>
   </div>
 
-  <!-- Next Invoice Preview Card (Pure build_invoice_draft preview without DB writes) -->
+  <!-- Next Invoice Forecast -->
   {% if next_preview %}
-    <div class="card shadow-sm border-primary bg-primary-subtle bg-opacity-10 mb-4">
-      <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-calendar-event text-primary fs-5"></i>
-          <div>
-            <h5 class="mb-0 fw-bold text-primary">Upcoming Invoice Preview</h5>
-            <span class="extra-small text-muted" style="font-size: 0.75rem;">
-              Simulated projection via billing engine (no database changes written)
-            </span>
-          </div>
-        </div>
-        <span class="badge bg-primary text-white">Live Forecast</span>
-      </div>
-      <div class="card-body p-4 bg-white">
-        <div class="row g-3 mb-3">
-          <div class="col-12 col-md-4">
-            <span class="text-muted small">Subscription:</span>
-            <div class="fw-semibold text-dark">#{{ active_sub.number }} &bull; {{ active_sub.plan.name }}</div>
-          </div>
-          <div class="col-6 col-md-4">
-            <span class="text-muted small">Upcoming Billing Period:</span>
-            <div class="fw-medium text-dark">
-              {{ next_preview.period_start|date:"d M Y" }} &ndash; {{ next_preview.period_end|date:"d M Y" }}
-            </div>
-          </div>
-          <div class="col-6 col-md-4 text-md-end">
-            <span class="text-muted small">Estimated Total:</span>
-            <div class="fs-4 fw-bold text-primary font-monospace">{{ next_preview.total|money }}</div>
-          </div>
-        </div>
-
-        <!-- Projected Lines -->
-        <div class="table-responsive">
-          <table class="table table-sm table-bordered align-middle mb-0">
-            <thead class="table-light extra-small text-muted text-uppercase">
-              <tr>
-                <th class="ps-2">Projected Line Item</th>
-                <th class="text-center">Qty</th>
-                <th class="text-end">Unit Price</th>
-                <th class="text-end">Discount</th>
-                <th class="text-end">Tax</th>
-                <th class="text-end pe-2">Estimated Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for line in next_preview.lines %}
-                <tr class="small">
-                  <td class="ps-2 fw-medium">{{ line.description }}</td>
-                  <td class="text-center">{{ line.quantity }}</td>
-                  <td class="text-end font-monospace">{{ line.unit_price|money }}</td>
-                  <td class="text-end font-monospace text-danger">
-                    {% if line.discount_amount > 0 %}-{{ line.discount_amount|money }}{% else %}₹0.00{% endif %}
-                  </td>
-                  <td class="text-end font-monospace text-primary">+{{ line.tax_amount|money }} ({{ line.tax_rate }}%)</td>
-                  <td class="text-end pe-2 font-monospace fw-bold">{{ line.line_total|money }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-            <tfoot class="table-light small font-monospace">
-              <tr>
-                <td colspan="3" class="ps-2 fw-bold text-uppercase">Projected Totals:</td>
-                <td class="text-end text-danger">-{{ next_preview.discount_total|money }}</td>
-                <td class="text-end text-primary">+{{ next_preview.tax_total|money }}</td>
-                <td class="text-end pe-2 fw-bold text-primary fs-6">{{ next_preview.total|money }}</td>
-              </tr>
-            </tfoot>
-          </table>
+  <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+    <div class="card-header py-3 px-4 d-flex align-items-center justify-content-between"
+         style="background:linear-gradient(90deg,#eef2ff 0%,#f5f3ff 100%);border-bottom:1px solid #e0e7ff;">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-calendar-event text-primary fs-5"></i>
+        <div>
+          <h6 class="mb-0 fw-bold text-primary">Upcoming Invoice Forecast</h6>
+          <span class="text-muted" style="font-size:0.73rem;">Live projection via billing engine — no database changes written</span>
         </div>
       </div>
+      <span class="badge-status badge-status-primary"><span class="status-dot"></span>Live Forecast</span>
     </div>
-  {% endif %}
-
-  <!-- Active Subscriptions & Self-Service Actions -->
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-      <h5 class="mb-0 fw-bold">My Subscriptions</h5>
-      <a href="/portal/subscriptions/" class="btn btn-outline-secondary btn-sm">View All</a>
-    </div>
-    <div class="card-body p-0">
-      {% if subscriptions %}
-        <div class="table-responsive">
-          <table class="table align-middle mb-0">
-            <thead class="table-light small text-muted text-uppercase">
-              <tr>
-                <th class="ps-3">Subscription</th>
-                <th>Plan & Term</th>
-                <th>Period Anchor</th>
-                <th>Expiry Date</th>
-                <th class="text-center">Status</th>
-                <th class="text-end pe-3">Self-Service Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for sub in subscriptions %}
-                <tr>
-                  <td class="ps-3 fw-semibold text-primary">#{{ sub.number }}</td>
-                  <td>
-                    <div class="fw-medium text-dark">{{ sub.plan.name }}</div>
-                    <div class="extra-small text-muted" style="font-size: 0.75rem;">
-                      {{ sub.plan.price|money }} / {{ sub.plan.interval_count }} {{ sub.plan.interval }}
-                    </div>
-                  </td>
-                  <td class="small text-muted">{{ sub.billing_anchor|date:"d M Y"|default:"Pending" }}</td>
-                  <td class="small text-muted">{{ sub.expiry_date|date:"d M Y" }}</td>
-                  <td class="text-center">
-                    {% if sub.paused_at %}
-                      <span class="badge bg-warning text-dark">Paused</span>
-                    {% else %}
-                      {% include "partials/_status_badge.html" with status=sub.status %}
-                    {% endif %}
-                  </td>
-                  <td class="text-end pe-3 text-nowrap">
-                    <!-- Pause / Resume Action (if plan allows) -->
-                    {% if sub.plan.allow_pause and sub.status == 'active' %}
-                      {% if sub.paused_at %}
-                        <form method="post" action="{% url 'portal:subscription_pause' sub.id %}" class="d-inline">
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-success py-0 px-2">
-                            <i class="bi bi-play-fill me-1"></i>Resume
-                          </button>
-                        </form>
-                      {% else %}
-                        <form method="post" action="{% url 'portal:subscription_pause' sub.id %}" class="d-inline">
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-outline-warning text-dark py-0 px-2" 
-                                  onclick="return confirm('Pause this subscription? Billing will be suspended until resumed.');">
-                            <i class="bi bi-pause-fill me-1"></i>Pause
-                          </button>
-                        </form>
-                      {% endif %}
-                    {% endif %}
-
-                    <!-- Renew Action (if plan allows) -->
-                    {% if sub.plan.allow_renew %}
-                      <form method="post" action="{% url 'portal:subscription_renew' sub.id %}" class="d-inline ms-1">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-outline-primary py-0 px-2" 
-                                onclick="return confirm('Renew subscription by one plan term?');">
-                          <i class="bi bi-arrow-repeat me-1"></i>Renew
-                        </button>
-                      </form>
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    <div class="card-body p-4">
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-4">
+          <span class="text-muted small d-block">Subscription</span>
+          <div class="fw-semibold text-dark">#{{ active_sub.number }} · {{ active_sub.plan.name }}</div>
         </div>
-      {% else %}
-        <div class="p-4 text-center text-muted">
-          <p class="mb-0">No active subscriptions found for this account.</p>
+        <div class="col-6 col-md-4">
+          <span class="text-muted small d-block">Billing Period</span>
+          <div class="fw-medium text-dark small">{{ next_preview.period_start|date:"d M Y" }} – {{ next_preview.period_end|date:"d M Y" }}</div>
         </div>
-      {% endif %}
+        <div class="col-6 col-md-4 text-md-end">
+          <span class="text-muted small d-block">Estimated Total</span>
+          <div class="fs-3 fw-bold text-primary font-monospace">{{ next_preview.total|money }}</div>
+        </div>
+      </div>
+
+      <!-- Projected Line Items -->
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle mb-0 rounded-3 overflow-hidden">
+          <thead class="table-light" style="font-size:0.75rem;">
+            <tr>
+              <th class="ps-3">Line Item</th>
+              <th class="text-center">Qty</th>
+              <th class="text-end">Unit Price</th>
+              <th class="text-end">Tax</th>
+              <th class="text-end pe-3">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in next_preview.lines %}
+            <tr>
+              <td class="ps-3 fw-medium">{{ line.description }}</td>
+              <td class="text-center font-monospace">{{ line.quantity }}</td>
+              <td class="text-end font-monospace">{{ line.unit_price|money }}</td>
+              <td class="text-end text-muted small">{{ line.tax_amount|money }}</td>
+              <td class="text-end pe-3 fw-semibold font-monospace">{{ line.subtotal|money }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="4" class="text-end fw-bold pe-3">Projected Total:</td>
+              <td class="text-end pe-3 fw-bold text-primary font-monospace fs-6">{{ next_preview.total|money }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   </div>
+  {% endif %}
 
-  <!-- Recent Invoices Table -->
-  <div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-      <h5 class="mb-0 fw-bold">Recent Invoices</h5>
-      <a href="/portal/invoices/" class="btn btn-outline-secondary btn-sm">View All Invoices</a>
+  <!-- Two-Column Layout: Subscriptions + Invoices -->
+  <div class="row g-4">
+
+    <!-- Active Subscriptions -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between rounded-top-4">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-card-checklist text-primary me-2"></i>Active Subscriptions</h6>
+          <a href="/portal/subscriptions/" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <div class="card-body p-0">
+          {% if subscriptions %}
+            {% for sub in subscriptions %}
+            <div class="p-3 border-bottom d-flex align-items-start gap-3">
+              <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                   style="width:40px;height:40px;background:#eef2ff;">
+                <i class="bi bi-receipt text-primary"></i>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-semibold text-dark small">#{{ sub.number }}</span>
+                  {% if sub.paused_at %}
+                    <span class="badge-status badge-status-warning"><span class="status-dot"></span>Paused</span>
+                  {% else %}
+                    {% include "partials/_status_badge.html" with status=sub.status %}
+                  {% endif %}
+                </div>
+                <div class="text-muted small">{{ sub.plan.name }} · {{ sub.plan.price|money }}/{{ sub.plan.interval }}</div>
+                {% if sub.next_invoice_date %}
+                  <div class="text-muted" style="font-size:0.73rem;">
+                    <i class="bi bi-calendar2 me-1"></i>Next invoice: {{ sub.next_invoice_date|date:"d M Y" }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="p-4">
+              {% include "partials/_empty_state.html" with title="No Subscriptions" message="You don't have any active subscriptions yet." icon="bi-card-checklist" %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
-    <div class="card-body p-0">
-      {% if invoices %}
-        <div class="table-responsive">
-          <table class="table align-middle mb-0">
-            <thead class="table-light small text-muted text-uppercase">
-              <tr>
-                <th class="ps-3">Invoice #</th>
-                <th>Invoice Date</th>
-                <th>Due Date</th>
-                <th class="text-end">Total</th>
-                <th class="text-end">Paid</th>
-                <th class="text-end">Balance</th>
-                <th class="text-center">Status</th>
-                <th class="text-end pe-3">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for inv in invoices %}
-                {% with d_status=inv|derived_status bal=inv|invoice_balance %}
+
+    <!-- Recent Invoices -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between rounded-top-4">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text text-primary me-2"></i>Recent Invoices</h6>
+          <a href="/portal/invoices/" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <div class="card-body p-0">
+          {% if invoices %}
+          <div class="table-responsive">
+            <table class="table align-middle mb-0 table-hover">
+              <thead class="table-light" style="font-size:0.73rem;">
+                <tr>
+                  <th class="ps-3">Invoice #</th>
+                  <th>Due Date</th>
+                  <th class="text-end">Total</th>
+                  <th class="text-end">Balance</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-end pe-3">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for inv in invoices %}
+                  {% with d_status=inv|derived_status bal=inv|invoice_balance %}
                   <tr>
-                    <td class="ps-3 fw-semibold">
+                    <td class="ps-3 fw-semibold small">
                       <a href="/invoices/{{ inv.number|default:inv.id }}/" class="text-decoration-none text-primary">
                         {{ inv.number|default:"(Draft)" }}
                       </a>
                     </td>
-                    <td class="small text-muted">{{ inv.invoice_date|date:"d M Y" }}</td>
-                    <td class="small {% if d_status == 'overdue' %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                    <td class="small {% if d_status == 'overdue' %}text-danger fw-semibold{% else %}text-muted{% endif %}">
                       {{ inv.due_date|date:"d M Y" }}
+                      {% if d_status == 'overdue' %}
+                        <div style="font-size:0.7rem;" class="text-danger">{{ inv.due_date|overdue_days }}d overdue</div>
+                      {% endif %}
                     </td>
-                    <td class="text-end fw-semibold">{{ inv.total|money }}</td>
-                    <td class="text-end text-success small">{{ inv.amount_paid|money }}</td>
-                    <td class="text-end fw-bold {% if bal > 0 %}text-danger{% else %}text-muted{% endif %}">
+                    <td class="text-end fw-semibold small font-monospace">{{ inv.total|money }}</td>
+                    <td class="text-end fw-bold small font-monospace {% if bal > 0 %}text-danger{% else %}text-muted{% endif %}">
                       {{ bal|money }}
                     </td>
                     <td class="text-center">
@@ -268,27 +229,31 @@
                     </td>
                     <td class="text-end pe-3">
                       {% if inv.status == 'confirmed' and bal > 0 %}
-                        <a href="{% url 'portal:invoice_pay' inv.number|default:inv.id %}" class="btn btn-sm btn-success py-0 px-2">
+                        <a href="{% url 'portal:invoice_pay' inv.number|default:inv.id %}" class="btn btn-sm btn-success py-0 px-2 fw-semibold">
                           <i class="bi bi-credit-card me-1"></i>Pay
                         </a>
                       {% else %}
-                        <a href="/invoices/{{ inv.number|default:inv.id }}/print/" target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2">
+                        <a href="/invoices/{{ inv.number|default:inv.id }}/print/" target="_blank"
+                           class="btn btn-sm btn-outline-secondary py-0 px-2" title="Print Invoice">
                           <i class="bi bi-printer"></i>
                         </a>
                       {% endif %}
                     </td>
                   </tr>
-                {% endwith %}
-              {% endfor %}
-            </tbody>
-          </table>
+                  {% endwith %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-4">
+            {% include "partials/_empty_state.html" with title="No Invoices" message="No invoices have been generated yet." icon="bi-file-earmark-text" %}
+          </div>
+          {% endif %}
         </div>
-      {% else %}
-        <div class="p-4 text-center text-muted">
-          <p class="mb-0">No invoices have been generated yet.</p>
-        </div>
-      {% endif %}
+      </div>
     </div>
   </div>
+
 </div>
 {% endblock %}

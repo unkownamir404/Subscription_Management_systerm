@@ -6,6 +6,7 @@ urlpatterns = [
     path("", views.root_redirect_view, name="root_redirect"),
     path("staff/new/", views.StaffCreateView.as_view(), name="staff_create"),
     path("customers/", customer_views.CustomerListView.as_view(), name="customer_list"),
+    path("customers/new/", customer_views.CustomerCreateView.as_view(), name="customer_create"),
     path("customers/<int:pk>/", customer_views.CustomerDetailView.as_view(), name="customer_detail"),
     path("customers/<int:pk>/edit/", customer_views.CustomerUpdateView.as_view(), name="customer_update"),
     path("signup/", views.signup_view, name="signup"),

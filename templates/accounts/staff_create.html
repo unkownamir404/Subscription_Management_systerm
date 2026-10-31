@@ -1,105 +1,144 @@
 {% extends "base.html" %}
-{% block title %}Create Staff Account — Brightloop{% endblock %}
+{% block title %}Create Staff Account – Brightloop{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="/reports/">Dashboard</a></li>
+<div class="container py-5" style="max-width:680px;">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="/reports/" class="text-decoration-none">Dashboard</a></li>
       <li class="breadcrumb-item active">Create Staff Account</li>
     </ol>
   </nav>
 
-  <div class="row justify-content-center">
-    <div class="col-lg-6 col-md-8">
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-primary text-white py-3">
-          <h5 class="mb-0">
-            <i class="bi bi-person-plus-fill me-2"></i>Create Staff Account
-          </h5>
-          <small class="opacity-75">Staff members can manage subscriptions, billing runs, and catalog items.</small>
-        </div>
-        <div class="card-body p-4">
-          {% if messages %}
-            {% for message in messages %}
-              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
+  <!-- Header -->
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div class="brand-badge" style="width:48px;height:48px;font-size:1.3rem; background: linear-gradient(135deg,#7c3aed,#4f46e5);">
+      <i class="bi bi-person-plus-fill"></i>
+    </div>
+    <div>
+      <h2 class="fw-bold mb-0">Create Staff Account</h2>
+      <p class="text-muted small mb-0">Grant internal team access to Brightloop — Admin or Staff role.</p>
+    </div>
+  </div>
 
-          <form method="post" novalidate>
-            {% csrf_token %}
-            <div class="mb-3">
-              <label for="id_email" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-              <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}"
-                     id="id_email" name="email" value="{{ form.email.value|default:'' }}"
-                     placeholder="staff@brightloop.test" autocomplete="email" required>
-              {% for err in form.email.errors %}
-                <div class="invalid-feedback">{{ err }}</div>
-              {% endfor %}
-            </div>
-
-            <div class="mb-3">
-              <label for="id_full_name" class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control {% if form.full_name.errors %}is-invalid{% endif %}"
-                     id="id_full_name" name="full_name" value="{{ form.full_name.value|default:'' }}"
-                     placeholder="Jane Smith" required>
-              {% for err in form.full_name.errors %}
-                <div class="invalid-feedback">{{ err }}</div>
-              {% endfor %}
-            </div>
-
-            <div class="mb-3">
-              <label for="id_role" class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
-              <select class="form-select {% if form.role.errors %}is-invalid{% endif %}" id="id_role" name="role">
-                <option value="staff" {% if form.role.value == "staff" or not form.role.value %}selected{% endif %}>Staff</option>
-                <option value="admin" {% if form.role.value == "admin" %}selected{% endif %}>Admin</option>
-              </select>
-              {% for err in form.role.errors %}
-                <div class="invalid-feedback">{{ err }}</div>
-              {% endfor %}
-              <div class="form-text text-muted">Admin role has full access including user management.</div>
-            </div>
-
-            <div class="mb-3">
-              <label for="id_password1" class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
-              <input type="password" class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
-                     id="id_password1" name="password1"
-                     placeholder="At least 9 characters">
-              {% for err in form.password1.errors %}
-                <div class="invalid-feedback">{{ err }}</div>
-              {% endfor %}
-              <div class="form-text">Must be 9+ characters with upper, lower, and special character.</div>
-            </div>
-
-            <div class="mb-4">
-              <label for="id_password2" class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
-              <input type="password" class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
-                     id="id_password2" name="password2"
-                     placeholder="Repeat password">
-              {% for err in form.password2.errors %}
-                <div class="invalid-feedback">{{ err }}</div>
-              {% endfor %}
-            </div>
-
-            {% if form.non_field_errors %}
-              <div class="alert alert-danger">
-                {% for err in form.non_field_errors %}{{ err }}{% endfor %}
-              </div>
-            {% endif %}
-
-            <div class="d-flex gap-2">
-              <button type="submit" class="btn btn-primary px-4">
-                <i class="bi bi-check-lg me-1"></i>Create Account
-              </button>
-              <a href="/reports/" class="btn btn-outline-secondary">Cancel</a>
-            </div>
-          </form>
-        </div>
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3 mb-4" role="alert">
+        <i class="bi bi-info-circle me-2"></i>{{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4 p-lg-5">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- Email -->
+        <div class="mb-4">
+          <label for="id_email" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
+            <input type="email" class="form-control border-start-0 {% if form.email.errors %}is-invalid{% endif %}"
+                   id="id_email" name="email" value="{{ form.email.value|default:'' }}"
+                   placeholder="staff@brightloop.test" autocomplete="email" required>
+            {% for err in form.email.errors %}
+              <div class="invalid-feedback">{{ err }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Full Name -->
+        <div class="mb-4">
+          <label for="id_full_name" class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
+            <input type="text" class="form-control border-start-0 {% if form.full_name.errors %}is-invalid{% endif %}"
+                   id="id_full_name" name="full_name" value="{{ form.full_name.value|default:'' }}"
+                   placeholder="Jane Smith" required>
+            {% for err in form.full_name.errors %}
+              <div class="invalid-feedback">{{ err }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Role -->
+        <div class="mb-4">
+          <label for="id_role" class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+          <select class="form-select {% if form.role.errors %}is-invalid{% endif %}" id="id_role" name="role">
+            <option value="staff" {% if form.role.value == "staff" or not form.role.value %}selected{% endif %}>
+              Staff — Can manage subscriptions, billing, and catalog
+            </option>
+            <option value="admin" {% if form.role.value == "admin" %}selected{% endif %}>
+              Admin — Full access including user management
+            </option>
+          </select>
+          {% for err in form.role.errors %}
+            <div class="invalid-feedback">{{ err }}</div>
+          {% endfor %}
+          <div class="mt-2 p-3 bg-light rounded-3 small text-muted">
+            <i class="bi bi-info-circle me-1 text-primary"></i>
+            <strong>Staff</strong> can view/edit subscriptions, run billing, manage catalog. <strong>Admin</strong> additionally creates other staff accounts and configures taxes &amp; discounts.
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-4">
+          <label for="id_password1" class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
+            <input type="password" class="form-control border-start-0 {% if form.password1.errors %}is-invalid{% endif %}"
+                   id="id_password1" name="password1" placeholder="At least 9 characters" autocomplete="new-password">
+            <button class="btn btn-light border border-start-0" type="button" onclick="togglePwd('id_password1',this)" tabindex="-1">
+              <i class="bi bi-eye"></i>
+            </button>
+            {% for err in form.password1.errors %}
+              <div class="invalid-feedback d-block">{{ err }}</div>
+            {% endfor %}
+          </div>
+          <div class="form-text mt-1">Must be 9+ characters with uppercase, lowercase, and special character.</div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="mb-4">
+          <label for="id_password2" class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-lock text-muted"></i></span>
+            <input type="password" class="form-control border-start-0 {% if form.password2.errors %}is-invalid{% endif %}"
+                   id="id_password2" name="password2" placeholder="Repeat password" autocomplete="new-password">
+            {% for err in form.password2.errors %}
+              <div class="invalid-feedback d-block">{{ err }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger rounded-3">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="d-flex gap-2 pt-2">
+          <button type="submit" class="btn btn-primary px-4 fw-semibold">
+            <i class="bi bi-person-check me-2"></i>Create Account
+          </button>
+          <a href="/reports/" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
     </div>
   </div>
 </div>
+
+<script>
+function togglePwd(fieldId, btn) {
+  const f = document.getElementById(fieldId);
+  if (!f) return;
+  const isText = f.type === 'text';
+  f.type = isText ? 'password' : 'text';
+  btn.innerHTML = isText ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+}
+</script>
 {% endblock %}

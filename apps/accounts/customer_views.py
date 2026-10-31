@@ -1,4 +1,4 @@
-from django.views.generic import ListView, DetailView, UpdateView
+from django.views.generic import ListView, DetailView, UpdateView, CreateView
 from django.db.models import Q, Count, Sum
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -102,4 +102,18 @@ class CustomerUpdateView(RoleRequiredMixin, UpdateView):
 
     def get_success_url(self):
         messages.success(self.request, f"Customer {self.object.name} updated successfully.")
+        return reverse_lazy("customer_detail", kwargs={"pk": self.object.pk})
+
+
+class CustomerCreateView(RoleRequiredMixin, CreateView):
+    """
+    Create a new customer profile.
+    """
+    allowed_roles = ["admin", "staff"]
+    model = Customer
+    template_name = "accounts/customer_form.html"
+    fields = ["name", "company", "phone", "billing_address", "tax_id"]
+
+    def get_success_url(self):
+        messages.success(self.request, f"Customer {self.object.name} created successfully.")
         return reverse_lazy("customer_detail", kwargs={"pk": self.object.pk})

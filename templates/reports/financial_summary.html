@@ -65,33 +65,33 @@
   <!-- Summary KPI Cards -->
   <div class="row g-3 mb-4">
     <div class="col-md-3">
-      <div class="card border-0 shadow-sm p-3">
-        <div class="text-muted extra-small text-uppercase fw-semibold">Total Invoiced</div>
-        <div class="h4 fw-bold mb-0 text-dark mt-1">₹ {{ totals.billed|default:0|money }}</div>
-        <small class="text-muted">{{ totals.count|default:0 }} total invoices</small>
+      <div class="kpi-card kpi-card-info">
+        <div class="kpi-label">Total Invoiced</div>
+        <div class="kpi-value font-monospace text-primary">{{ totals.billed|default:0|money }}</div>
+        <div class="kpi-sub">{{ totals.count|default:0 }} total invoices</div>
       </div>
     </div>
     <div class="col-md-3">
-      <div class="card border-0 shadow-sm p-3">
-        <div class="text-muted extra-small text-uppercase fw-semibold">Revenue Collected</div>
-        <div class="h4 fw-bold mb-0 text-success mt-1">₹ {{ totals.collected|default:0|money }}</div>
-        <small class="text-muted">Cleared payments</small>
+      <div class="kpi-card kpi-card-success">
+        <div class="kpi-label">Revenue Collected</div>
+        <div class="kpi-value font-monospace text-success">{{ totals.collected|default:0|money }}</div>
+        <div class="kpi-sub">Cleared payments</div>
       </div>
     </div>
     <div class="col-md-3">
-      <div class="card border-0 shadow-sm p-3">
-        <div class="text-muted extra-small text-uppercase fw-semibold">Outstanding Balance</div>
-        <div class="h4 fw-bold mb-0 {% if totals.outstanding > 0 %}text-danger{% else %}text-muted{% endif %} mt-1">
-          ₹ {{ totals.outstanding|default:0|money }}
+      <div class="kpi-card {% if totals.outstanding > 0 %}kpi-card-danger{% else %}kpi-card-success{% endif %}">
+        <div class="kpi-label">Outstanding Balance</div>
+        <div class="kpi-value font-monospace {% if totals.outstanding > 0 %}text-danger{% else %}text-muted{% endif %}">
+          {{ totals.outstanding|default:0|money }}
         </div>
-        <small class="text-muted">Uncollected dues</small>
+        <div class="kpi-sub">Uncollected dues</div>
       </div>
     </div>
     <div class="col-md-3">
-      <div class="card border-0 shadow-sm p-3">
-        <div class="text-muted extra-small text-uppercase fw-semibold">Taxes Applied</div>
-        <div class="h4 fw-bold mb-0 text-primary mt-1">₹ {{ totals.tax|default:0|money }}</div>
-        <small class="text-muted">Discounts: ₹ {{ totals.discounts|default:0|money }}</small>
+      <div class="kpi-card kpi-card-warning">
+        <div class="kpi-label">Taxes Applied</div>
+        <div class="kpi-value font-monospace" style="color:var(--warning-text);">{{ totals.tax|default:0|money }}</div>
+        <div class="kpi-sub">Discounts: {{ totals.discounts|default:0|money }}</div>
       </div>
     </div>
   </div>

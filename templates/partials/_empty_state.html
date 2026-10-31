@@ -1,18 +1,20 @@
 {% comment %}
-Shared Empty State Partial
+Shared Elevated Empty State Partial
 Usage: {% include 'partials/_empty_state.html' with title="No Subscriptions" message="Create your first subscription." action_url="/subscriptions/new/" action_label="New Subscription" icon="bi-receipt" %}
 {% endcomment %}
-<div class="text-center py-5 my-4 px-3 border rounded bg-white">
-  <div class="mb-3 text-muted">
-    <i class="bi {{ icon|default:'bi-folder2-open' }} display-4 text-secondary"></i>
+<div class="text-center py-5 my-3 px-3 card border-0 shadow-sm bg-white">
+  <div class="d-inline-flex align-items-center justify-content-center rounded-circle mx-auto mb-3" style="width: 64px; height: 64px; background: rgba(79, 70, 229, 0.08); color: var(--brand-primary, #4f46e5);">
+    <i class="bi {{ icon|default:'bi-folder2-open' }} fs-2"></i>
   </div>
-  <h5 class="fw-semibold text-dark mb-1">{{ title|default:"No records found" }}</h5>
+  <h5 class="fw-bold text-dark mb-1">{{ title|default:"No records found" }}</h5>
   {% if message %}
-    <p class="text-muted small mb-3">{{ message }}</p>
+    <p class="text-muted small mb-3 mx-auto" style="max-width: 420px;">{{ message }}</p>
   {% endif %}
   {% if action_url and action_label %}
-    <a href="{{ action_url }}" class="btn btn-primary btn-sm px-3 mt-1">
-      <i class="bi bi-plus-lg me-1"></i>{{ action_label }}
-    </a>
+    <div>
+      <a href="{{ action_url }}" class="btn btn-primary btn-sm px-3 shadow-sm">
+        <i class="bi bi-plus-lg me-1"></i>{{ action_label }}
+      </a>
+    </div>
   {% endif %}
 </div>

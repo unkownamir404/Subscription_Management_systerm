@@ -212,3 +212,16 @@ class CustomerManagementViewTests(TestCase):
         self.customer.refresh_from_db()
         self.assertEqual(self.customer.name, "Alpha Corp Updated")
         self.assertEqual(self.customer.company, "Alpha Global Inc")
+
+    def test_customer_create_view(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post("/customers/new/", {
+            "name": "Beta Enterprises",
+            "company": "Beta Ltd",
+            "phone": "1234567890",
+            "tax_id": "GSTIN55555",
+            "billing_address": "789 Innovation Hub",
+        })
+        new_cust = Customer.objects.filter(name="Beta Enterprises").first()
+        self.assertIsNotNone(new_cust)
+        self.assertRedirects(resp, f"/customers/{new_cust.id}/")
