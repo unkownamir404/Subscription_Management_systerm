@@ -32,9 +32,21 @@
       <!-- Staff / Admin Specific Actions -->
       {% if role_flags.is_staff_or_admin %}
         {% if invoice.status == 'draft' %}
-          <button type="button" class="btn btn-primary btn-sm" onclick="alert('Invoice confirmation is triggered by the billing engine or API.');">
-            <i class="bi bi-check-circle me-1"></i>Confirm Invoice
-          </button>
+          <form method="post" action="/invoices/{{ invoice.number|default:invoice.id }}/confirm/" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-check-circle me-1"></i>Confirm Invoice
+            </button>
+          </form>
+        {% endif %}
+
+        {% if invoice.status in 'confirmed paid' %}
+          <form method="post" action="/invoices/{{ invoice.number|default:invoice.id }}/send/" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-envelope me-1"></i>Send Email
+            </button>
+          </form>
         {% endif %}
 
         {% if invoice.status == 'confirmed' and bal > 0 %}
@@ -44,9 +56,12 @@
         {% endif %}
 
         {% if invoice.amount_paid == 0 and invoice.status != 'cancelled' %}
-          <button type="button" class="btn btn-outline-danger btn-sm" onclick="if(confirm('Cancel this invoice?')){ alert('Cancellation request submitted.'); }">
-            <i class="bi bi-x-circle me-1"></i>Cancel Invoice
-          </button>
+          <form method="post" action="/invoices/{{ invoice.number|default:invoice.id }}/cancel/" class="d-inline" onsubmit="return confirm('Cancel this invoice?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+              <i class="bi bi-x-circle me-1"></i>Cancel Invoice
+            </button>
+          </form>
         {% endif %}
       {% endif %}
 

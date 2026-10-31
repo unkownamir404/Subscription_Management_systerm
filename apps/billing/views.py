@@ -164,6 +164,136 @@ class InvoicePrintView(View):
 # A6: Billing Run (admin-only) — /billing/run/
 # ---------------------------------------------------------------------------
 
+class InvoiceConfirmActionView(RoleRequiredMixin, View):
+    allowed_roles = ["admin", "staff"]
+
+    def post(self, request, identifier):
+        from apps.billing.services.invoicing import confirm_invoice
+        from apps.core.exceptions import DomainError
+        from django.contrib import messages
+
+        invoice = _lookup_invoice(identifier)
+        if not invoice:
+            raise Http404("Invoice not found.")
+
+        try:
+            confirmed = confirm_invoice(invoice, request.user)
+            messages.success(request, f"Invoice {confirmed.number} confirmed successfully.")
+        except DomainError as err:
+            messages.error(request, str(err))
+
+        return redirect(f"/invoices/{invoice.number or invoice.id}/")
+
+
+class InvoiceCancelActionView(RoleRequiredMixin, View):
+    allowed_roles = ["admin", "staff"]
+
+    def post(self, request, identifier):
+        from apps.billing.services.invoicing import cancel_invoice
+        from apps.core.exceptions import DomainError
+        from django.contrib import messages
+
+        invoice = _lookup_invoice(identifier)
+        if not invoice:
+            raise Http404("Invoice not found.")
+
+        try:
+            cancel_invoice(invoice, request.user)
+            messages.info(request, f"Invoice {invoice.number or invoice.id} has been cancelled.")
+        except DomainError as err:
+            messages.error(request, str(err))
+
+        return redirect(f"/invoices/{invoice.number or invoice.id}/")
+
+
+class InvoiceSendActionView(RoleRequiredMixin, View):
+    allowed_roles = ["admin", "staff"]
+
+    def post(self, request, identifier):
+        from apps.billing.services.invoicing import send_invoice
+        from apps.core.exceptions import DomainError
+        from django.contrib import messages
+
+        invoice = _lookup_invoice(identifier)
+        if not invoice:
+            raise Http404("Invoice not found.")
+
+        try:
+            send_invoice(invoice, request.user)
+            messages.success(request, f"Invoice {invoice.number or invoice.id} dispatched via email.")
+        except DomainError as err:
+            messages.error(request, str(err))
+
+        return redirect(f"/invoices/{invoice.number or invoice.id}/")
+
+
+class InvoiceRecordPaymentActionView(RoleRequiredMixin, View):
+    allowed_roles = ["admin", "staff"]
+
+    def post(self, request, identifier):
+        from apps.billing.services.payments import record_payment
+        from apps.core.exceptions import DomainError
+        from django.contrib import messages
+
+        invoice = _lookup_invoice(identifier)
+        if not invoice:
+            raise Http404("Invoice not found.")
+
+        method = request.POST.get("method", "bank_transfer")
+        amount_raw = request.POST.get("amount", "").strip()
+        paid_on_raw = request.POST.get("paid_on", "").strip()
+        note = request.POST.get("note", "").strip()
+
+        try:
+            from datetime import date
+            paid_on = date.fromisoformat(paid_on_raw) if paid_on_raw else timezone.localdate()
+            amount = Decimal(amount_raw) if amount_raw else None
+            payment = record_payment(
+                invoice=invoice,
+                method=method,
+                amount=amount,
+                paid_on=paid_on,
+                note=note,
+                user=request.user,
+            )
+            messages.success(request, f"Payment of ₹ {payment.amount} successfully recorded.")
+        except DomainError as err:
+            messages.error(request, str(err))
+        except Exception as exc:
+            messages.error(request, f"Failed to record payment: {exc}")
+
+        return redirect(f"/invoices/{invoice.number or invoice.id}/")
+
+
+class InvoiceBulkConfirmView(RoleRequiredMixin, View):
+    allowed_roles = ["admin", "staff"]
+
+    def post(self, request):
+        from apps.billing.services.invoicing import confirm_invoice
+        from django.contrib import messages
+
+        selected_ids = request.POST.getlist("selected_invoices")
+        confirmed_count = 0
+        for inv_id in selected_ids:
+            inv = Invoice.objects.filter(pk=inv_id, status=InvoiceStatus.DRAFT).first()
+            if inv:
+                try:
+                    confirm_invoice(inv, request.user)
+                    confirmed_count += 1
+                except Exception:
+                    pass
+
+        messages.success(request, f"Successfully confirmed {confirmed_count} draft invoice(s).")
+        return redirect("/invoices/")
+
+
+def _lookup_invoice(identifier):
+    invoice_qs = Invoice.objects.select_related("customer", "subscription")
+    if str(identifier).isdigit():
+        return invoice_qs.filter(Q(pk=int(identifier)) | Q(number=str(identifier))).first()
+    return invoice_qs.filter(number=str(identifier)).first()
+
+
 class BillingRunView(RoleRequiredMixin, View):
     """
     Admin-only billing run page.

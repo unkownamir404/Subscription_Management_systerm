@@ -140,3 +140,164 @@ def build_invoice_draft(subscription: Any, period_start: date) -> InvoiceDraft:
         tax_total=tax_total,
         total=total,
     )
+import logging
+from django.core.mail import send_mail
+from django.db import transaction
+from django.utils import timezone
+from apps.core.exceptions import DomainError
+from apps.billing.models import Invoice, InvoiceCounter, InvoiceLine, InvoiceStatus
+from apps.billing.services.discounts import redeem
+
+logger = logging.getLogger(__name__)
+
+
+def create_invoice_from_draft(subscription, draft: InvoiceDraft) -> Invoice:
+    """
+    Creates an Invoice (status=draft) and InvoiceLine rows from an InvoiceDraft.
+    Redeems distinct discounts atomically. If a discount fails redemption (e.g. usage limit reached),
+    recomputes the draft without that discount.
+    """
+    with transaction.atomic():
+        # Check discount redemptions
+        active_draft = draft
+        distinct_discounts = [ld.discount for ld in active_draft.lines if ld.discount]
+        needs_recompute = False
+
+        for disc in distinct_discounts:
+            # Test redemption eligibility
+            if disc.usage_limit is not None and disc.used_count >= disc.usage_limit:
+                needs_recompute = True
+                break
+
+        if needs_recompute:
+            # Recompute draft with currently valid discounts
+            active_draft = build_invoice_draft(subscription, draft.period_start)
+
+        invoice = Invoice.objects.create(
+            subscription=subscription,
+            customer=active_draft.customer,
+            period_start=active_draft.period_start,
+            period_end=active_draft.period_end,
+            invoice_date=active_draft.invoice_date,
+            due_date=active_draft.due_date,
+            status=InvoiceStatus.DRAFT,
+            subtotal=active_draft.subtotal,
+            discount_total=active_draft.discount_total,
+            tax_total=active_draft.tax_total,
+            total=active_draft.total,
+            amount_paid=Decimal("0.00"),
+        )
+
+        for ld in active_draft.lines:
+            InvoiceLine.objects.create(
+                invoice=invoice,
+                description=ld.description,
+                product=ld.product,
+                quantity=ld.quantity,
+                unit_price=ld.unit_price,
+                discount_amount=ld.discount_amount,
+                tax_rate=ld.tax_rate,
+                tax_amount=ld.tax_amount,
+                line_total=ld.line_total,
+                discount=ld.discount,
+            )
+
+        # Redeem discounts atomically
+        redeemed_discounts = {ld.discount for ld in active_draft.lines if ld.discount}
+        for disc in redeemed_discounts:
+            redeem(disc, invoice)
+
+    return invoice
+
+
+def confirm_invoice(invoice: Invoice, user=None) -> Invoice:
+    """
+    Transitions invoice from draft -> confirmed.
+    Assigns sequential, gap-free invoice number INV-<year>-<6 digits> under a row lock on InvoiceCounter.
+    """
+    if invoice.status != InvoiceStatus.DRAFT:
+        raise DomainError(f"Cannot confirm invoice with status '{invoice.status}'. Must be 'draft'.")
+
+    with transaction.atomic():
+        inv = Invoice.objects.select_for_update(of=("self",)).get(pk=invoice.pk)
+        year = inv.invoice_date.year
+        key = f"INV-{year}"
+
+        counter, _ = InvoiceCounter.objects.select_for_update().get_or_create(
+            key=key,
+            defaults={"last_value": 0},
+        )
+        counter.last_value += 1
+        counter.save(update_fields=["last_value", "updated_at"])
+
+        inv.number = f"{key}-{counter.last_value:06d}"
+        inv.status = InvoiceStatus.CONFIRMED
+        inv.save(update_fields=["number", "status", "updated_at"])
+
+    return inv
+
+
+def cancel_invoice(invoice: Invoice, user=None) -> Invoice:
+    """
+    Cancels an invoice (only if draft or confirmed, and amount_paid == 0).
+    Cancelled invoices retain their billing period.
+    """
+    if invoice.status not in (InvoiceStatus.DRAFT, InvoiceStatus.CONFIRMED):
+        raise DomainError(f"Cannot cancel invoice in '{invoice.status}' status.")
+
+    if invoice.amount_paid > Decimal("0.00"):
+        raise DomainError("Cannot cancel an invoice with payments recorded. Refund or adjust payments first.")
+
+    with transaction.atomic():
+        inv = Invoice.objects.select_for_update(of=("self",)).get(pk=invoice.pk)
+        inv.status = InvoiceStatus.CANCELLED
+        inv.save(update_fields=["status", "updated_at"])
+
+    return inv
+
+
+def send_invoice(invoice: Invoice, user=None) -> Invoice:
+    """
+    Sends invoice by email (only if confirmed or paid).
+    Renders plain text email to customer's user email.
+    Sends on commit and records sent_at timestamp.
+    """
+    if invoice.status not in (InvoiceStatus.CONFIRMED, InvoiceStatus.PAID):
+        raise DomainError(f"Cannot send invoice in '{invoice.status}' status. Must be confirmed or paid.")
+
+    recipient_email = getattr(getattr(invoice.customer, "user", None), "email", None)
+    if not recipient_email:
+        logger.warning(f"Customer #{invoice.customer.id} has no user email; skipping email dispatch.")
+        invoice.sent_at = timezone.now()
+        invoice.save(update_fields=["sent_at", "updated_at"])
+        return invoice
+
+    subject = f"Invoice {invoice.number or invoice.id} from Brightloop"
+    message = (
+        f"Dear {invoice.customer.name},\n\n"
+        f"Your invoice {invoice.number or invoice.id} for the period "
+        f"{invoice.period_start} to {invoice.period_end} is ready.\n\n"
+        f"Total Amount: ₹ {invoice.total}\n"
+        f"Amount Paid: ₹ {invoice.amount_paid}\n"
+        f"Balance Due: ₹ {invoice.total - invoice.amount_paid}\n"
+        f"Due Date: {invoice.due_date}\n\n"
+        f"View and pay your invoice at http://127.0.0.1:8000/portal/invoices/\n\n"
+        f"Thank you for choosing Brightloop!"
+    )
+
+    def _deliver():
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=None,
+                recipient_list=[recipient_email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            logger.error(f"Failed to deliver invoice email to {recipient_email}: {exc}")
+
+    transaction.on_commit(_deliver)
+    invoice.sent_at = timezone.now()
+    invoice.save(update_fields=["sent_at", "updated_at"])
+    return invoice

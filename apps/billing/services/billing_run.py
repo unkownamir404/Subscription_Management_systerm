@@ -263,3 +263,34 @@ def _process_subscription_live(sub_id: int, as_of: date, billing_run: BillingRun
                 error=str(exc),
             )
             billing_run.failed_count += 1
+
+
+def run_lifecycle(as_of: Optional[date] = None) -> dict:
+    """
+    Executes automated lifecycle tasks:
+      1. Auto-closes expired subscriptions where plan.auto_close=True.
+      2. Counts and identifies stale quotations.
+      3. Sends automated due-date and overdue payment reminder emails.
+    Returns summary dict of actions taken.
+    """
+    if as_of is None:
+        as_of = timezone.localdate()
+
+    from apps.subscriptions.services.lifecycle import auto_close_expired
+    from apps.billing.services.reminders import send_due_reminders
+
+    closed_count = auto_close_expired(as_of)
+
+    expired_quotes_count = Subscription.objects.filter(
+        status=SubscriptionStatus.QUOTATION,
+        quote_valid_until__lt=as_of,
+    ).count()
+
+    reminders_sent = send_due_reminders(as_of)
+
+    return {
+        "as_of": as_of,
+        "auto_closed_subscriptions": closed_count,
+        "expired_quotations": expired_quotes_count,
+        "reminders_sent": reminders_sent,
+    }

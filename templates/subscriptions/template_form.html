@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}New Quotation Template - Brightloop{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 900px;">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb small text-muted mb-2">
+      <li class="breadcrumb-item"><a href="/reports/" class="text-decoration-none">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="/templates/" class="text-decoration-none">Templates</a></li>
+      <li class="breadcrumb-item active" aria-current="page">New</li>
+    </ol>
+  </nav>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+      <h5 class="mb-0 fw-bold"><i class="bi bi-file-earmark-plus me-2 text-primary"></i>Create Quotation Template</h5>
+    </div>
+    <div class="card-body p-4">
+      <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger p-2 small">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold">Template Name *</label>
+            {{ form.name }}
+            {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold">Recurring Plan *</label>
+            {{ form.plan }}
+            {% if form.plan.errors %}<div class="text-danger small">{{ form.plan.errors }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold">Validity Days *</label>
+            {{ form.validity_days }}
+            {% if form.validity_days.errors %}<div class="text-danger small">{{ form.validity_days.errors }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-6 d-flex align-items-center mt-4">
+            <div class="form-check">
+              {{ form.is_active }}
+              <label class="form-check-label small fw-semibold ms-2">Is Active</label>
+            </div>
+          </div>
+        </div>
+
+        <h6 class="fw-bold mb-3 border-bottom pb-2">Pre-Configured Product Lines</h6>
+        {{ formset.management_form }}
+        <div class="table-responsive mb-4">
+          <table class="table table-sm align-middle">
+            <thead class="table-light extra-small text-muted text-uppercase">
+              <tr>
+                <th>Product</th>
+                <th>Variant (Optional)</th>
+                <th style="width: 120px;">Quantity</th>
+                <th style="width: 80px;">Delete</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for line_form in formset %}
+                <tr>
+                  <td>{{ line_form.product }}</td>
+                  <td>{{ line_form.variant }}</td>
+                  <td>{{ line_form.quantity }}</td>
+                  <td class="text-center">{{ line_form.DELETE }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-between pt-3 border-top">
+          <a href="/templates/" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary px-4">Save Template</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
