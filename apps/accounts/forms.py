@@ -74,6 +74,26 @@ class SignupForm(forms.Form):
                 name=name,
                 company=company,
             )
+
+            def _send_welcome(to_email=email, user_name=name):
+                try:
+                    from django.core.mail import send_mail
+                    send_mail(
+                        subject="Welcome to Brightloop!",
+                        message=(
+                            f"Hello {user_name},\n\n"
+                            f"Welcome to Brightloop Subscription Management System! Your account is active.\n"
+                            f"Log in to your customer portal anytime at: http://127.0.0.1:8000/portal/\n\n"
+                            f"Best regards,\nBrightloop Team"
+                        ),
+                        from_email=None,
+                        recipient_list=[to_email],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
+            transaction.on_commit(_send_welcome)
+
         return user
 
 
@@ -101,3 +121,65 @@ class StyledSetPasswordForm(SetPasswordForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs.update({"class": "form-control"})
+
+
+class StaffCreateForm(forms.Form):
+    """Admin-only form to create a staff or admin user."""
+    email = forms.EmailField(
+        label="Email Address",
+        widget=forms.EmailInput(attrs={"class": "form-control", "placeholder": "staff@brightloop.test"}),
+    )
+    full_name = forms.CharField(
+        label="Full Name",
+        max_length=255,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Jane Smith"}),
+    )
+    role = forms.ChoiceField(
+        label="Role",
+        choices=[("staff", "Staff"), ("admin", "Admin")],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    password1 = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+    password2 = forms.CharField(
+        label="Confirm Password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "").strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("An account with this email already exists.")
+        return email
+
+    def clean_password1(self):
+        pw = self.cleaned_data.get("password1", "")
+        if pw:
+            password_validation.validate_password(pw)
+        return pw
+
+    def clean(self):
+        cleaned = super().clean()
+        p1 = cleaned.get("password1")
+        p2 = cleaned.get("password2")
+        if p1 and p2 and p1 != p2:
+            self.add_error("password2", "Passwords do not match.")
+        return cleaned
+
+    def save(self):
+        email = self.cleaned_data["email"]
+        password = self.cleaned_data["password1"]
+        role = self.cleaned_data["role"]
+        is_staff_flag = role in ("staff", "admin")
+        is_superuser = role == "admin"
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            role=role,
+        )
+        user.is_staff = is_staff_flag
+        user.is_superuser = is_superuser
+        user.save()
+        return user

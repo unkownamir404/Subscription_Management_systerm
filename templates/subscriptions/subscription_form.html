@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Create Subscription - Brightloop{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 800px;">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb small text-muted mb-2">
+      <li class="breadcrumb-item"><a href="/reports/" class="text-decoration-none">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="/subscriptions/" class="text-decoration-none">Subscriptions</a></li>
+      <li class="breadcrumb-item active" aria-current="page">New</li>
+    </ol>
+  </nav>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+      <h5 class="mb-0 fw-bold"><i class="bi bi-file-earmark-plus me-2 text-primary"></i>New Subscription / Quotation</h5>
+    </div>
+    <div class="card-body p-4">
+      <form method="post" class="needs-validation">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger p-2 small">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        <!-- Template Selector -->
+        <div class="mb-4 p-3 bg-light rounded border">
+          <label class="form-label fw-bold text-dark mb-1">
+            <i class="bi bi-magic me-1 text-primary"></i>Use Quotation Template
+          </label>
+          {{ form.template }}
+          <div class="form-text small text-muted">
+            Selecting a template pre-populates plans, product lines, and billing parameters automatically.
+          </div>
+          {% if form.template.errors %}
+            <div class="text-danger small">{{ form.template.errors }}</div>
+          {% endif %}
+        </div>
+
+        <div class="row g-3">
+          <!-- Customer -->
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold text-dark">Customer *</label>
+            {{ form.customer }}
+            {% if form.customer.errors %}
+              <div class="text-danger small">{{ form.customer.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Plan -->
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold text-dark">Subscription Plan *</label>
+            {{ form.plan }}
+            {% if form.plan.errors %}
+              <div class="text-danger small">{{ form.plan.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Start Date -->
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold text-dark">Start Date *</label>
+            {{ form.start_date }}
+            {% if form.start_date.errors %}
+              <div class="text-danger small">{{ form.start_date.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Expiry Date -->
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold text-dark">Expiry Date (Optional)</label>
+            {{ form.expiry_date }}
+            <div class="form-text extra-small text-muted">Defaults to 1 plan cycle from start date if left blank.</div>
+            {% if form.expiry_date.errors %}
+              <div class="text-danger small">{{ form.expiry_date.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Payment Terms Days -->
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold text-dark">Payment Terms (Days)</label>
+            {{ form.payment_terms_days }}
+            <div class="form-text extra-small text-muted">Days after invoice issue date until due (default 15).</div>
+            {% if form.payment_terms_days.errors %}
+              <div class="text-danger small">{{ form.payment_terms_days.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+          <a href="/subscriptions/" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-check2 me-1"></i>Create Draft Subscription
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -34,9 +34,20 @@
           {% if user.is_authenticated %}
             {% if role_flags.is_admin or role_flags.is_staff %}
               <!-- Admin / Staff Operational Navigation -->
-              <li class="nav-item">
-                <a class="nav-link" href="/reports/">
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                   <i class="bi bi-graph-up me-1"></i>Reports
+                </a>
+                <ul class="dropdown-menu shadow-sm">
+                  <li><a class="dropdown-item" href="/reports/"><i class="bi bi-speedometer2 me-2"></i>Finance Dashboard</a></li>
+                  <li><a class="dropdown-item" href="/reports/financial/"><i class="bi bi-calendar3 me-2"></i>Financial Summaries</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/reports/export/?type=revenue"><i class="bi bi-download me-2"></i>Export CSV</a></li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/customers/">
+                  <i class="bi bi-people me-1"></i>Customers
                 </a>
               </li>
               <li class="nav-item dropdown">

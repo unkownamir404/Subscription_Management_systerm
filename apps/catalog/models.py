@@ -186,3 +186,10 @@ class Discount(TimeStamped):
     def __str__(self):
         suffix = "%" if self.kind == self.Kind.PERCENT else "₹"
         return f"{self.name} ({self.value}{suffix})"
+
+
+# Top-level enum aliases matching DESIGN.md and test suites
+ProductType = Product.ProductType
+PlanInterval = Plan.Interval
+DiscountKind = Discount.Kind
+DiscountScope = Discount.Scope

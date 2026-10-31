@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Billing Coverage Check - Brightloop{% endblock %}
+
+{% block content %}
+{% firstof as_of today as check_date %}
+
+{% if unbilled_count is not None %}
+  {% with unbilled=unbilled_count %}
+    {% include "billing/_coverage_body.html" %}
+  {% endwith %}
+{% elif unbilled_subscriptions_count is not None %}
+  {% with unbilled=unbilled_subscriptions_count %}
+    {% include "billing/_coverage_body.html" %}
+  {% endwith %}
+{% elif unbilled is not None %}
+  {% with unbilled=unbilled %}
+    {% include "billing/_coverage_body.html" %}
+  {% endwith %}
+{% else %}
+  {% with unbilled=0 %}
+    {% include "billing/_coverage_body.html" %}
+  {% endwith %}
+{% endif %}
+
+{% endblock %}

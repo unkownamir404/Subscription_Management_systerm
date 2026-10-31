@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Run Billing Engine - Brightloop{% endblock %}
+
+{% block content %}
+{% firstof billing_run run result as run_obj %}
+{% firstof is_preview preview run_obj.dry_run as is_dry_run %}
+{% firstof as_of target_date date run_obj.as_of today as target_as_of %}
+
+<div class="container-fluid py-4">
+  <!-- Header & Breadcrumbs -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small text-muted mb-1">
+          <li class="breadcrumb-item"><a href="/reports/" class="text-decoration-none">Dashboard</a></li>
+          <li class="breadcrumb-item"><a href="/invoices/" class="text-decoration-none">Invoices</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Run Billing</li>
+        </ol>
+      </nav>
+      <h2 class="h3 fw-bold mb-0">Billing Engine</h2>
+      <p class="text-muted small mb-0 mt-1">
+        Idempotent invoice generation engine (DESIGN.md § 6). Preview upcoming catch-up periods with zero database writes, then commit transactions safely.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="/billing/coverage/" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-shield-check me-1"></i>Coverage Check
+      </a>
+      <a href="/invoices/" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-receipt me-1"></i>View Invoices
+      </a>
+    </div>
+  </div>
+
+  <!-- Run Control Form Card -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3">
+      <h5 class="mb-0 fw-bold"><i class="bi bi-sliders me-2 text-primary"></i>Billing Run Execution</h5>
+    </div>
+    <div class="card-body p-4">
+      <form method="post" action="" class="row g-3 align-items-end">
+        {% csrf_token %}
+
+        <!-- Date Field -->
+        <div class="col-12 col-md-5 col-lg-4">
+          <label class="form-label small fw-semibold text-dark">
+            <i class="bi bi-calendar3 me-1 text-primary"></i>As-Of Billing Target Date
+          </label>
+          <input type="date" name="as_of" class="form-control" 
+                 value="{{ target_as_of|date:'Y-m-d'|default:target_as_of }}" required>
+          <div class="form-text small text-muted">
+            Catches up all unbilled periods where <code>next_invoice_date &le; as_of</code>. Defaults to today.
+          </div>
+        </div>
+
+        <!-- Buttons Container -->
+        <div class="col-12 col-md-7 col-lg-8 d-flex flex-wrap align-items-center gap-2">
+          <!-- Preview Button (Dry-Run: Always Available) -->
+          <button type="submit" name="action" value="preview" class="btn btn-outline-primary">
+            <i class="bi bi-eye me-1"></i>Preview Billing (Dry-Run)
+          </button>
+
+          <!-- Commit Button: Appears ONLY after a preview run -->
+          {% if is_dry_run %}
+            <button type="submit" name="action" value="commit" class="btn btn-danger"
+                    onclick="return confirm('Commit billing run? This will insert draft invoices and advance billing anchors in database.');">
+              <i class="bi bi-play-circle-fill me-1"></i>Commit &amp; Generate Invoices
+            </button>
+            <span class="badge bg-warning text-dark py-2 px-3">
+              <i class="bi bi-info-circle me-1"></i>Preview ready &mdash; review counts below before committing
+            </span>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Results Section -->
+  {% if run_obj or is_dry_run or created_count is not None %}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <h5 class="mb-0 fw-bold">Run Results</h5>
+          {% if is_dry_run %}
+            <span class="badge bg-warning text-dark">
+              <i class="bi bi-exclamation-triangle me-1"></i>PREVIEW (DRY-RUN) &bull; Zero DB Writes
+            </span>
+          {% else %}
+            <span class="badge bg-success text-white">
+              <i class="bi bi-check2-circle me-1"></i>LIVE RUN COMMITTED
+            </span>
+          {% endif %}
+        </div>
+        <span class="text-muted small">
+          Target Date: <strong>{{ target_as_of|date:"d M Y"|default:target_as_of }}</strong>
+        </span>
+      </div>
+
+      <div class="card-body p-4">
+        <!-- Result KPI Cards -->
+        <div class="row g-3 mb-4">
+          <!-- Created Count -->
+          <div class="col-12 col-md-4">
+            <div class="card border-0 border-start border-4 border-success bg-success-subtle bg-opacity-25 h-100 shadow-sm">
+              <div class="card-body p-3">
+                <span class="text-muted small text-uppercase fw-bold">
+                  {% if is_dry_run %}Projected to Create{% else %}Invoices Created{% endif %}
+                </span>
+                <div class="display-5 fw-bold text-success mb-0 mt-1 font-monospace">
+                  {% if run_obj.created_count is not None %}{{ run_obj.created_count }}{% elif created_count is not None %}{{ created_count }}{% else %}0{% endif %}
+                </div>
+                <div class="text-muted small mt-1">
+                  {% if is_dry_run %}Draft invoices that will be generated on commit{% else %}Invoices successfully created in database{% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Skipped Count -->
+          <div class="col-12 col-md-4">
+            <div class="card border-0 border-start border-4 border-secondary bg-light h-100 shadow-sm">
+              <div class="card-body p-3">
+                <span class="text-muted small text-uppercase fw-bold">Skipped (Idempotent)</span>
+                <div class="display-5 fw-bold text-secondary mb-0 mt-1 font-monospace">
+                  {% if run_obj.skipped_count is not None %}{{ run_obj.skipped_count }}{% elif skipped_count is not None %}{{ skipped_count }}{% else %}0{% endif %}
+                </div>
+                <div class="text-muted small mt-1">
+                  Already billed for period &bull; <code>(subscription, period_start)</code> protected
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Failed Count -->
+          <div class="col-12 col-md-4">
+            <div class="card border-0 border-start border-4 border-danger bg-danger-subtle bg-opacity-25 h-100 shadow-sm">
+              <div class="card-body p-3">
+                <span class="text-muted small text-uppercase fw-bold">Failed (Rolled Back)</span>
+                <div class="display-5 fw-bold text-danger mb-0 mt-1 font-monospace">
+                  {% if run_obj.failed_count is not None %}{{ run_obj.failed_count }}{% elif failed_count is not None %}{{ failed_count }}{% else %}0{% endif %}
+                </div>
+                <div class="text-muted small mt-1">
+                  Isolated in subscription transaction &bull; other subscriptions not blocked
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Result Summary Table -->
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light extra-small text-muted text-uppercase">
+              <tr>
+                <th class="ps-3">Metric</th>
+                <th class="text-center">Count</th>
+                <th>Status &amp; Behavior</th>
+                <th>Idempotency Guarantee</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="ps-3 fw-semibold text-success">
+                  <i class="bi bi-plus-circle me-1"></i>New Invoices
+                </td>
+                <td class="text-center font-monospace fw-bold fs-5 text-success">
+                  {% if run_obj.created_count is not None %}{{ run_obj.created_count }}{% elif created_count is not None %}{{ created_count }}{% else %}0{% endif %}
+                </td>
+                <td class="small">
+                  {% if is_dry_run %}
+                    <span class="badge bg-warning text-dark">Simulated</span> Forecasted catch-up periods ready for generation.
+                  {% else %}
+                    <span class="badge bg-success">Created</span> Saved as draft invoices with snapshotted line items.
+                  {% endif %}
+                </td>
+                <td class="small text-muted">Advances <code>next_invoice_date</code> and <code>periods_billed</code>.</td>
+              </tr>
+              <tr>
+                <td class="ps-3 fw-semibold text-secondary">
+                  <i class="bi bi-arrow-repeat me-1"></i>Skipped Subscriptions
+                </td>
+                <td class="text-center font-monospace fw-bold fs-5 text-secondary">
+                  {% if run_obj.skipped_count is not None %}{{ run_obj.skipped_count }}{% elif skipped_count is not None %}{{ skipped_count }}{% else %}0{% endif %}
+                </td>
+                <td class="small">
+                  <span class="badge bg-secondary">Skipped</span> Target period was already generated in a previous run.
+                </td>
+                <td class="small text-muted">Guaranteed by <code>UniqueConstraint(subscription, period_start)</code>.</td>
+              </tr>
+              <tr>
+                <td class="ps-3 fw-semibold text-danger">
+                  <i class="bi bi-x-circle me-1"></i>Failed Items
+                </td>
+                <td class="text-center font-monospace fw-bold fs-5 text-danger">
+                  {% if run_obj.failed_count is not None %}{{ run_obj.failed_count }}{% elif failed_count is not None %}{{ failed_count }}{% else %}0{% endif %}
+                </td>
+                <td class="small">
+                  {% if run_obj.failed_count or failed_count %}
+                    <span class="badge bg-danger">Errors Detected</span> Check logs; failed subscriptions will be retried on next run.
+                  {% else %}
+                    <span class="badge bg-success">0 Errors</span> All candidate subscriptions processed cleanly.
+                  {% endif %}
+                </td>
+                <td class="small text-muted">Single-subscription transaction rollback prevents cascade failures.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Detailed Item Breakdown (if available from A6 view) -->
+        {% if items or run_obj.items.all %}
+          <div class="mt-4">
+            <h6 class="fw-bold text-dark mb-2">Processed Items Breakdown</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light extra-small text-muted text-uppercase sticky-top">
+                  <tr>
+                    <th class="ps-2">Subscription</th>
+                    <th>Result</th>
+                    <th>Invoice</th>
+                    <th>Details / Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in items|default:run_obj.items.all %}
+                    <tr>
+                      <td class="ps-2 fw-medium">#{{ item.subscription.number }}</td>
+                      <td>
+                        {% include "partials/_status_badge.html" with status=item.result %}
+                      </td>
+                      <td>
+                        {% if item.invoice %}
+                          <a href="/invoices/{{ item.invoice.number|default:item.invoice.id }}/" class="text-primary text-decoration-none">
+                            {{ item.invoice.number|default:item.invoice.id }}
+                          </a>
+                        {% else %}
+                          <span class="text-muted">&mdash;</span>
+                        {% endif %}
+                      </td>
+                      <td class="small text-muted">
+                        {{ item.error|default:"Processed cleanly" }}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Next Step Links -->
+        <div class="mt-4 pt-3 border-top d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div class="text-muted small">
+            <i class="bi bi-shield-check text-success me-1"></i>
+            Running billing multiple times is idempotent. Duplicate runs produce exactly 0 new records.
+          </div>
+          <div class="d-flex gap-2">
+            <a href="/billing/coverage/" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-clipboard-check me-1"></i>Verify Coverage
+            </a>
+            <a href="/invoices/" class="btn btn-primary btn-sm">
+              <i class="bi bi-receipt me-1"></i>Inspect Generated Invoices
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <!-- Initial Zero State before Run -->
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        {% include "partials/_empty_state.html" with title="Ready for Billing" message="Select a target date and click 'Preview Billing' to simulate period generation before committing." icon="bi-play-circle" %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ customer.name }} — Customer Profile — Brightloop{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small text-muted">
+      <li class="breadcrumb-item"><a href="/reports/" class="text-decoration-none">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="/customers/" class="text-decoration-none">Customers</a></li>
+      <li class="breadcrumb-item active">{{ customer.name }}</li>
+    </ol>
+  </nav>
+
+  <!-- Header Card -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-3">
+        <h2 class="h3 fw-bold mb-0">{{ customer.name }}</h2>
+        {% if customer.company %}
+          <span class="badge bg-light text-dark border"><i class="bi bi-building me-1"></i>{{ customer.company }}</span>
+        {% endif %}
+      </div>
+      <p class="text-muted small mb-0 mt-1">
+        Customer ID: #{{ customer.id }} &bull; Joined {{ customer.created_at|date:"d M Y" }}
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="/customers/{{ customer.id }}/edit/" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-pencil me-1"></i>Edit Profile
+      </a>
+      <a href="/subscriptions/new/?customer={{ customer.id }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle me-1"></i>Create Subscription
+      </a>
+    </div>
+  </div>
+
+  <!-- Financial KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="text-muted extra-small text-uppercase fw-semibold">Total Invoiced</div>
+        <div class="h4 fw-bold mb-0 text-dark mt-1">₹ {{ total_billed|money }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="text-muted extra-small text-uppercase fw-semibold">Total Paid</div>
+        <div class="h4 fw-bold mb-0 text-success mt-1">₹ {{ total_paid|money }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="text-muted extra-small text-uppercase fw-semibold">Outstanding Balance</div>
+        <div class="h4 fw-bold mb-0 {% if outstanding > 0 %}text-danger{% else %}text-muted{% endif %} mt-1">
+          ₹ {{ outstanding|money }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Customer Profile Card -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-person-badge text-primary me-2"></i>Profile Details</h6>
+        </div>
+        <div class="card-body p-3 small">
+          <div class="mb-3">
+            <span class="text-muted d-block">Account Email:</span>
+            <span class="fw-semibold">{{ customer.user.email|default:"No associated user" }}</span>
+          </div>
+          <div class="mb-3">
+            <span class="text-muted d-block">Phone:</span>
+            <span class="fw-semibold">{{ customer.phone|default:"Not provided" }}</span>
+          </div>
+          <div class="mb-3">
+            <span class="text-muted d-block">Tax ID / GSTIN:</span>
+            <span class="fw-semibold">{{ customer.tax_id|default:"Not registered" }}</span>
+          </div>
+          <div class="mb-0">
+            <span class="text-muted d-block">Billing Address:</span>
+            <span class="fw-semibold">{{ customer.billing_address|default:"Not provided"|linebreaksbr }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Payments -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-cash-stack text-success me-2"></i>Payment History</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 extra-small">
+              <thead class="table-light text-muted">
+                <tr>
+                  <th class="ps-3">Date</th>
+                  <th>Method</th>
+                  <th class="text-end pe-3">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in payments %}
+                  <tr>
+                    <td class="ps-3 py-2">{{ p.paid_on|date:"d M Y" }}</td>
+                    <td class="text-capitalize">{{ p.get_method_display }}</td>
+                    <td class="text-end pe-3 fw-semibold text-success">₹ {{ p.amount|money }}</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="3" class="text-center py-3 text-muted">No payments recorded yet.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Subscriptions & Invoices -->
+    <div class="col-lg-8">
+      <!-- Subscriptions Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-card-checklist text-primary me-2"></i>Subscriptions ({{ subscriptions.count }})</h6>
+          <a href="/subscriptions/new/?customer={{ customer.id }}" class="btn btn-outline-primary btn-sm py-0">
+            <i class="bi bi-plus"></i>Add
+          </a>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+              <thead class="table-light extra-small text-muted text-uppercase">
+                <tr>
+                  <th class="ps-3">Number</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Next Invoice</th>
+                  <th>Expiry Date</th>
+                  <th class="text-end pe-3">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sub in subscriptions %}
+                  <tr>
+                    <td class="ps-3 fw-bold">
+                      <a href="/subscriptions/{{ sub.id }}/" class="text-decoration-none">{{ sub.number }}</a>
+                    </td>
+                    <td>{{ sub.plan.name }}</td>
+                    <td>
+                      {% if sub.status == 'active' %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                      {% elif sub.status == 'quotation' %}
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Quotation</span>
+                      {% elif sub.status == 'closed' %}
+                        <span class="badge bg-secondary-subtle text-secondary border">Closed</span>
+                      {% elif sub.status == 'confirmed' %}
+                        <span class="badge bg-info-subtle text-info border">Confirmed</span>
+                      {% else %}
+                        <span class="badge bg-light text-muted border">{{ sub.status|title }}</span>
+                      {% endif %}
+                      {% if sub.is_paused %}
+                        <span class="badge bg-warning text-dark">Paused</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ sub.next_invoice_date|date:"d M Y"|default:"—" }}</td>
+                    <td>{{ sub.expiry_date|date:"d M Y"|default:"Indefinite" }}</td>
+                    <td class="text-end pe-3">
+                      <a href="/subscriptions/{{ sub.id }}/" class="btn btn-sm btn-outline-secondary py-0">View</a>
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No subscriptions found for this customer.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invoices Card -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text text-primary me-2"></i>Invoices ({{ invoices.count }})</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+              <thead class="table-light extra-small text-muted text-uppercase">
+                <tr>
+                  <th class="ps-3">Invoice #</th>
+                  <th>Date</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th class="text-end">Total</th>
+                  <th class="text-end">Balance</th>
+                  <th class="text-end pe-3">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for inv in invoices %}
+                  {% with bal=inv|invoice_balance %}
+                  <tr>
+                    <td class="ps-3 fw-bold">
+                      <a href="/invoices/{{ inv.number|default:inv.id }}/" class="text-decoration-none">
+                        {{ inv.number|default:"(Draft)" }}
+                      </a>
+                    </td>
+                    <td>{{ inv.invoice_date|date:"d M Y" }}</td>
+                    <td class="{% if inv.status != 'paid' and inv.due_date < today %}text-danger fw-semibold{% endif %}">
+                      {{ inv.due_date|date:"d M Y" }}
+                    </td>
+                    <td>
+                      {% if inv.status == 'paid' %}
+                        <span class="badge bg-success-subtle text-success border">Paid</span>
+                      {% elif inv.status == 'confirmed' %}
+                        <span class="badge bg-primary-subtle text-primary border">Confirmed</span>
+                      {% elif inv.status == 'cancelled' %}
+                        <span class="badge bg-danger-subtle text-danger border">Cancelled</span>
+                      {% else %}
+                        <span class="badge bg-light text-muted border">Draft</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end fw-semibold">₹ {{ inv.total|money }}</td>
+                    <td class="text-end {% if bal > 0 %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                      ₹ {{ bal|money }}
+                    </td>
+                    <td class="text-end pe-3">
+                      <a href="/invoices/{{ inv.number|default:inv.id }}/" class="btn btn-sm btn-outline-secondary py-0">View</a>
+                    </td>
+                  </tr>
+                  {% endwith %}
+                {% empty %}
+                  <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">No invoices recorded yet.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -19,6 +19,15 @@ from apps.accounts.forms import (
 )
 
 
+def root_redirect_view(request):
+    if not request.user.is_authenticated:
+        return redirect("/login/")
+    user_role = getattr(request.user, "role", None)
+    if user_role in ("admin", "staff") or request.user.is_superuser or request.user.is_staff:
+        return redirect("/reports/")
+    return redirect("/portal/")
+
+
 def signup_view(request):
     if request.user.is_authenticated:
         return redirect("/portal/")
@@ -71,3 +80,17 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
 
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "registration/password_reset_complete.html"
+
+from django.contrib import messages
+from apps.accounts.permissions import RoleRequiredMixin
+from apps.accounts.forms import StaffCreateForm
+
+class StaffCreateView(RoleRequiredMixin, FormView):
+    allowed_roles = ["admin"]
+    form_class = StaffCreateForm
+    template_name = "accounts/staff_create.html"
+
+    def form_valid(self, form):
+        user = form.save()
+        messages.success(self.request, f"Staff account {user.email} created successfully.")
+        return redirect("/reports/")

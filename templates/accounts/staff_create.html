@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Create Staff Account — Brightloop{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/reports/">Dashboard</a></li>
+      <li class="breadcrumb-item active">Create Staff Account</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-primary text-white py-3">
+          <h5 class="mb-0">
+            <i class="bi bi-person-plus-fill me-2"></i>Create Staff Account
+          </h5>
+          <small class="opacity-75">Staff members can manage subscriptions, billing runs, and catalog items.</small>
+        </div>
+        <div class="card-body p-4">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="id_email" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+              <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                     id="id_email" name="email" value="{{ form.email.value|default:'' }}"
+                     placeholder="staff@brightloop.test" autocomplete="email" required>
+              {% for err in form.email.errors %}
+                <div class="invalid-feedback">{{ err }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="mb-3">
+              <label for="id_full_name" class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control {% if form.full_name.errors %}is-invalid{% endif %}"
+                     id="id_full_name" name="full_name" value="{{ form.full_name.value|default:'' }}"
+                     placeholder="Jane Smith" required>
+              {% for err in form.full_name.errors %}
+                <div class="invalid-feedback">{{ err }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="mb-3">
+              <label for="id_role" class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+              <select class="form-select {% if form.role.errors %}is-invalid{% endif %}" id="id_role" name="role">
+                <option value="staff" {% if form.role.value == "staff" or not form.role.value %}selected{% endif %}>Staff</option>
+                <option value="admin" {% if form.role.value == "admin" %}selected{% endif %}>Admin</option>
+              </select>
+              {% for err in form.role.errors %}
+                <div class="invalid-feedback">{{ err }}</div>
+              {% endfor %}
+              <div class="form-text text-muted">Admin role has full access including user management.</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="id_password1" class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+              <input type="password" class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                     id="id_password1" name="password1"
+                     placeholder="At least 9 characters">
+              {% for err in form.password1.errors %}
+                <div class="invalid-feedback">{{ err }}</div>
+              {% endfor %}
+              <div class="form-text">Must be 9+ characters with upper, lower, and special character.</div>
+            </div>
+
+            <div class="mb-4">
+              <label for="id_password2" class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+              <input type="password" class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                     id="id_password2" name="password2"
+                     placeholder="Repeat password">
+              {% for err in form.password2.errors %}
+                <div class="invalid-feedback">{{ err }}</div>
+              {% endfor %}
+            </div>
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger">
+                {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-check-lg me-1"></i>Create Account
+              </button>
+              <a href="/reports/" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

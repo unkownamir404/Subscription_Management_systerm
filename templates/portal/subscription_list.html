@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}My Subscriptions - Customer Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+      <a href="/portal/" class="btn btn-outline-secondary btn-sm mb-2">
+        <i class="bi bi-arrow-left me-1"></i>Back to Portal Dashboard
+      </a>
+      <h2 class="h3 fw-bold mb-0">My Subscriptions</h2>
+      <p class="text-muted small mb-0 mt-1">Manage all your active plans and self-service lifecycle actions.</p>
+    </div>
+  </div>
+
+  <!-- Subscriptions List Card -->
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      {% if subscriptions %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light small text-muted text-uppercase">
+              <tr>
+                <th class="ps-3">Subscription #</th>
+                <th>Plan Details</th>
+                <th>Quantity & Items</th>
+                <th>Billing Anchor</th>
+                <th>Periods Billed</th>
+                <th>Next Invoice Date</th>
+                <th>Expiry Date</th>
+                <th class="text-center">Status</th>
+                <th class="text-end pe-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in subscriptions %}
+                <tr>
+                  <!-- Subscription Number -->
+                  <td class="ps-3 fw-semibold text-primary">
+                    #{{ sub.number }}
+                  </td>
+
+                  <!-- Plan Details -->
+                  <td>
+                    <div class="fw-bold text-dark">{{ sub.plan.name }}</div>
+                    <div class="text-muted small font-monospace">
+                      {{ sub.plan.price|money }} / {{ sub.plan.interval_count }} {{ sub.plan.interval }}
+                    </div>
+                  </td>
+
+                  <!-- Items -->
+                  <td>
+                    {% for line in sub.lines.all %}
+                      <div class="small">
+                        {{ line.quantity }}x {{ line.product.name }}
+                        {% if line.variant %}<span class="badge bg-light text-dark border">({{ line.variant.value }})</span>{% endif %}
+                      </div>
+                    {% empty %}
+                      <span class="text-muted small">Standard Plan Item</span>
+                    {% endfor %}
+                  </td>
+
+                  <!-- Billing Anchor -->
+                  <td class="small text-muted">{{ sub.billing_anchor|date:"d M Y"|default:"Not anchored" }}</td>
+
+                  <!-- Periods Billed -->
+                  <td class="small text-center">{{ sub.periods_billed }}</td>
+
+                  <!-- Next Invoice Date -->
+                  <td class="small fw-medium text-dark">{{ sub.next_invoice_date|date:"d M Y"|default:"&mdash;" }}</td>
+
+                  <!-- Expiry Date -->
+                  <td class="small text-muted">{{ sub.expiry_date|date:"d M Y" }}</td>
+
+                  <!-- Status -->
+                  <td class="text-center">
+                    {% if sub.paused_at %}
+                      <span class="badge bg-warning text-dark"><i class="bi bi-pause-circle me-1"></i>Paused</span>
+                    {% else %}
+                      {% include "partials/_status_badge.html" with status=sub.status %}
+                    {% endif %}
+                  </td>
+
+                  <!-- Actions allowed by Plan -->
+                  <td class="text-end pe-3 text-nowrap">
+                    <!-- Pause / Resume Action -->
+                    {% if sub.plan.allow_pause and sub.status == 'active' %}
+                      {% if sub.paused_at %}
+                        <form method="post" action="{% url 'portal:subscription_pause' sub.id %}" class="d-inline">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-success py-1 px-2">
+                            <i class="bi bi-play-fill me-1"></i>Resume
+                          </button>
+                        </form>
+                      {% else %}
+                        <form method="post" action="{% url 'portal:subscription_pause' sub.id %}" class="d-inline">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-outline-warning text-dark py-1 px-2"
+                                  onclick="return confirm('Pause this subscription? Billing will be suspended until resumed.');">
+                            <i class="bi bi-pause-fill me-1"></i>Pause
+                          </button>
+                        </form>
+                      {% endif %}
+                    {% endif %}
+
+                    <!-- Renew Action -->
+                    {% if sub.plan.allow_renew %}
+                      <form method="post" action="{% url 'portal:subscription_renew' sub.id %}" class="d-inline ms-1">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-primary py-1 px-2"
+                                onclick="return confirm('Renew this subscription for an additional plan term?');">
+                          <i class="bi bi-arrow-repeat me-1"></i>Renew
+                        </button>
+                      </form>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-5 text-center text-muted">
+          {% include "partials/_empty_state.html" with title="No Subscriptions" message="You currently do not have any active or previous subscriptions." %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
