@@ -210,33 +210,6 @@ def create_invoice_from_draft(subscription, draft: InvoiceDraft) -> Invoice:
     return invoice
 
 
-def confirm_invoice(invoice: Invoice, user=None) -> Invoice:
-    """
-    Transitions invoice from draft -> confirmed.
-    Assigns sequential, gap-free invoice number INV-<year>-<6 digits> under a row lock on InvoiceCounter.
-    """
-    if invoice.status != InvoiceStatus.DRAFT:
-        raise DomainError(f"Cannot confirm invoice with status '{invoice.status}'. Must be 'draft'.")
-
-    with transaction.atomic():
-        inv = Invoice.objects.select_for_update(of=("self",)).get(pk=invoice.pk)
-        year = inv.invoice_date.year
-        key = f"INV-{year}"
-
-        counter, _ = InvoiceCounter.objects.select_for_update().get_or_create(
-            key=key,
-            defaults={"last_value": 0},
-        )
-        counter.last_value += 1
-        counter.save(update_fields=["last_value", "updated_at"])
-
-        inv.number = f"{key}-{counter.last_value:06d}"
-        inv.status = InvoiceStatus.CONFIRMED
-        inv.save(update_fields=["number", "status", "updated_at"])
-
-    return inv
-
-
 def cancel_invoice(invoice: Invoice, user=None) -> Invoice:
     """
     Cancels an invoice (only if draft or confirmed, and amount_paid == 0).
@@ -292,7 +265,7 @@ def send_invoice(invoice: Invoice, user=None) -> Invoice:
                 message=message,
                 from_email=None,
                 recipient_list=[recipient_email],
-                fail_silently=False,
+                fail_silently=True,
             )
         except Exception as exc:
             logger.error(f"Failed to deliver invoice email to {recipient_email}: {exc}")
@@ -301,3 +274,37 @@ def send_invoice(invoice: Invoice, user=None) -> Invoice:
     invoice.sent_at = timezone.now()
     invoice.save(update_fields=["sent_at", "updated_at"])
     return invoice
+
+
+def confirm_invoice(invoice: Invoice, user=None) -> Invoice:
+    """
+    Transitions invoice from draft -> confirmed.
+    Assigns sequential, gap-free invoice number INV-<year>-<6 digits> under a row lock on InvoiceCounter.
+    Automatically schedules invoice notification email dispatch on transaction commit.
+    """
+    if invoice.status != InvoiceStatus.DRAFT:
+        raise DomainError(f"Cannot confirm invoice with status '{invoice.status}'. Must be 'draft'.")
+
+    with transaction.atomic():
+        inv = Invoice.objects.select_for_update(of=("self",)).get(pk=invoice.pk)
+        year = inv.invoice_date.year
+        key = f"INV-{year}"
+
+        counter, _ = InvoiceCounter.objects.select_for_update().get_or_create(
+            key=key,
+            defaults={"last_value": 0},
+        )
+        counter.last_value += 1
+        counter.save(update_fields=["last_value", "updated_at"])
+
+        inv.number = f"{key}-{counter.last_value:06d}"
+        inv.status = InvoiceStatus.CONFIRMED
+        inv.save(update_fields=["number", "status", "updated_at"])
+
+    # Auto-dispatch notification email to customer
+    try:
+        send_invoice(inv, user)
+    except Exception:
+        pass
+
+    return inv

@@ -85,7 +85,6 @@ def send_due_reminders(today: Optional[date] = None) -> int:
     return sent_count
 
 
-
 def send_subscription_lifecycle_reminders(today: Optional[date] = None) -> int:
     """
     Sends automated subscription renewal and expiry notices:
@@ -108,7 +107,6 @@ def send_subscription_lifecycle_reminders(today: Optional[date] = None) -> int:
     ).select_related("customer__user", "plan")
 
     for sub in renewals:
-        # Check if already notified
         if SubscriptionEvent.objects.filter(subscription=sub, action="renewal_notice_sent", note__contains=str(renewal_target)).exists():
             continue
 
@@ -128,6 +126,41 @@ def send_subscription_lifecycle_reminders(today: Optional[date] = None) -> int:
                     to_status=sub.status,
                     action="renewal_notice_sent",
                     note=f"Renewal notice sent for expiry on {renewal_target}",
+                )
+                def _send(email=recipient, subj=subject, msg=body):
+                    try:
+                        send_mail(subj, msg, None, [email], fail_silently=True)
+                    except Exception:
+                        pass
+                transaction.on_commit(_send)
+                sent_count += 1
+
+    # 2. Expiry notices (on expiry date)
+    expiries = Subscription.objects.filter(
+        status=SubscriptionStatus.ACTIVE,
+        expiry_date=today,
+    ).select_related("customer__user", "plan")
+
+    for sub in expiries:
+        if SubscriptionEvent.objects.filter(subscription=sub, action="expiry_notice_sent", note__contains=str(today)).exists():
+            continue
+
+        recipient = getattr(getattr(sub.customer, "user", None), "email", None)
+        if recipient:
+            subject = f"Brightloop Subscription Expiry Notice: {sub.number}"
+            body = (
+                f"Hello {sub.customer.name},\n\n"
+                f"Your subscription ({sub.number} - {sub.plan.name}) expires today ({sub.expiry_date}).\n"
+                f"You can renew or manage your subscription at: http://127.0.0.1:8000/portal/subscriptions/\n\n"
+                f"Thank you,\nBrightloop Team"
+            )
+            with transaction.atomic():
+                SubscriptionEvent.objects.create(
+                    subscription=sub,
+                    from_status=sub.status,
+                    to_status=sub.status,
+                    action="expiry_notice_sent",
+                    note=f"Expiry notice sent for expiry on {today}",
                 )
                 def _send(email=recipient, subj=subject, msg=body):
                     try:
