@@ -62,14 +62,15 @@
             <i class="bi bi-eye me-1"></i>Preview Billing (Dry-Run)
           </button>
 
-          <!-- Commit Button: Appears ONLY after a preview run -->
+          <!-- Commit Button: Available for direct execution or after preview -->
+          <button type="submit" name="action" value="commit" class="btn {% if is_dry_run %}btn-danger{% else %}btn-primary{% endif %}"
+                  onclick="return confirm('Commit billing run? This will generate draft invoices and advance billing anchors in database.');">
+            <i class="bi bi-play-circle-fill me-1"></i>Commit &amp; Generate Invoices
+          </button>
+
           {% if is_dry_run %}
-            <button type="submit" name="action" value="commit" class="btn btn-danger"
-                    onclick="return confirm('Commit billing run? This will insert draft invoices and advance billing anchors in database.');">
-              <i class="bi bi-play-circle-fill me-1"></i>Commit &amp; Generate Invoices
-            </button>
             <span class="badge bg-warning text-dark py-2 px-3">
-              <i class="bi bi-info-circle me-1"></i>Preview ready &mdash; review counts below before committing
+              <i class="bi bi-info-circle me-1"></i>Preview ready &mdash; review counts and breakdown below before committing
             </span>
           {% endif %}
         </div>

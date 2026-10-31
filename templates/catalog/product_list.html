@@ -138,7 +138,7 @@
   </div>
   {% else %}
   <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
-    {% include "partials/_empty_state.html" with title="No Products" message="Get started by adding your first product with pricing and variants." icon="bi-box-seam" cta_url="catalog:product_create"|url cta_text="Add Product" %}
+    {% include "partials/_empty_state.html" with title="No Products" message="Get started by adding your first product with pricing and variants." icon="bi-box-seam" cta_url="/products/new/" cta_text="Add Product" %}
   </div>
   {% endif %}
 

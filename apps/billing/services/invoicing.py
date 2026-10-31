@@ -209,6 +209,38 @@ def create_invoice_from_draft(subscription, draft: InvoiceDraft) -> Invoice:
 
     return invoice
 
+def generate_invoice_for_subscription(subscription: Any, period_start: Optional[date] = None) -> Invoice:
+    """
+    Generate an invoice directly from an active subscription.
+    Checks status, prevents duplicate billing, advances pointer, and returns created Invoice.
+    """
+    if getattr(subscription, 'status', None) != 'active':
+        raise DomainError(f"Cannot generate invoice for subscription with status '{subscription.status}'. Subscription must be active.")
+    if subscription.paused_at is not None:
+        raise DomainError("Cannot generate invoice for a paused subscription. Resume subscription first.")
+
+    target_start = period_start or subscription.next_invoice_date or subscription.billing_anchor or subscription.start_date
+    if Invoice.objects.filter(subscription=subscription, period_start=target_start).exists():
+        raise DomainError(f"An invoice for subscription {subscription.number} starting on {target_start} already exists.")
+
+    from apps.billing.services.billing_run import compute_period_start
+    draft = build_invoice_draft(subscription, target_start)
+    inv = create_invoice_from_draft(subscription, draft)
+
+    # Advance subscription period
+    plan = subscription.plan
+    anchor = subscription.billing_anchor or subscription.start_date
+    subscription.periods_billed += 1
+    subscription.next_invoice_date = compute_period_start(
+        anchor,
+        subscription.periods_billed,
+        plan.interval,
+        plan.interval_count,
+    )
+    subscription.save(update_fields=['periods_billed', 'next_invoice_date', 'updated_at'])
+
+    return inv
+
 
 def cancel_invoice(invoice: Invoice, user=None) -> Invoice:
     """

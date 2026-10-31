@@ -309,7 +309,7 @@ def _lookup_invoice(identifier):
 
 class BillingRunView(RoleRequiredMixin, View):
     """
-    Admin-only billing run page.
+    Billing run page for administrators and staff.
 
     GET  → render run.html with empty form (no results yet).
     POST → run billing engine in dry-run (action=preview) or live (action=commit) mode.
@@ -321,7 +321,7 @@ class BillingRunView(RoleRequiredMixin, View):
         items         : first 200 BillingRunItems for the breakdown table
         today         : today's date
     """
-    allowed_roles = ["admin"]
+    allowed_roles = ["admin", "staff"]
 
     def get(self, request, *args, **kwargs):
         today = timezone.localdate()
@@ -351,10 +351,13 @@ class BillingRunView(RoleRequiredMixin, View):
         billing_run = run_billing(as_of=as_of, dry_run=dry_run, user=request.user)
 
         # Fetch first 200 items for the detailed table
-        items = (
-            billing_run.items.select_related("subscription__customer", "invoice")
-            .order_by("id")[:200]
-        ) if not dry_run else []
+        if not dry_run:
+            items = (
+                billing_run.items.select_related("subscription__customer", "invoice")
+                .order_by("id")[:200]
+            )
+        else:
+            items = getattr(billing_run, "preview_items", [])[:200]
 
         return render(request, "billing/run.html", {
             "billing_run": billing_run,
@@ -371,7 +374,7 @@ class BillingRunView(RoleRequiredMixin, View):
 
 class BillingCoverageView(RoleRequiredMixin, View):
     """
-    Admin-only billing coverage / integrity dashboard.
+    Billing coverage / integrity dashboard for administrators and staff.
 
     Context passed to coverage.html:
         unbilled_count      : active non-paused subs with next_invoice_date <= today
@@ -380,7 +383,7 @@ class BillingCoverageView(RoleRequiredMixin, View):
         as_of               : today's date
         today               : today's date
     """
-    allowed_roles = ["admin"]
+    allowed_roles = ["admin", "staff"]
 
     def get(self, request, *args, **kwargs):
         today = timezone.localdate()

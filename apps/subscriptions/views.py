@@ -140,6 +140,7 @@ class SubscriptionDetailView(RoleRequiredMixin, DetailView):
             else:
                 if plan.allow_pause:
                     actions.append("pause")
+                actions.append("generate_invoice")
             if plan.allow_renew:
                 actions.append("renew")
             if plan.allow_early_close:
@@ -239,6 +240,11 @@ class SubscriptionTransitionView(RoleRequiredMixin, View):
             elif action == "close":
                 lifecycle.close(sub, actor=request.user)
                 messages.info(request, f"Subscription {sub.number} closed.")
+            elif action == "generate_invoice":
+                from apps.billing.services.invoicing import generate_invoice_for_subscription
+                inv = generate_invoice_for_subscription(sub)
+                messages.success(request, f"Invoice {inv.number or inv.id} generated directly from subscription {sub.number}.")
+                return redirect(f"/invoices/{inv.number or inv.id}/")
             else:
                 messages.error(request, f"Unknown lifecycle action: {action}")
         except DomainError as err:

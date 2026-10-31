@@ -18,6 +18,15 @@ from apps.billing.services.invoicing import build_invoice_draft
 from apps.subscriptions.models import Subscription, SubscriptionStatus
 
 
+
+class PreviewRunItem:
+    """In-memory simulation item for dry-run billing previews."""
+    def __init__(self, subscription, result, invoice=None, error=""):
+        self.subscription = subscription
+        self.result = result
+        self.invoice = invoice
+        self.error = error
+
 def compute_period_start(anchor: date, n: int, interval: str, interval_count: int = 1) -> date:
     """
     Compute period_start(n) = anchor + n * interval_count * interval using relativedelta.
@@ -68,6 +77,7 @@ def run_billing(
             skipped_count=0,
             failed_count=0,
         )
+        billing_run.preview_items = []
     else:
         billing_run = BillingRun.objects.create(
             run_date=run_date,
@@ -142,9 +152,25 @@ def _process_subscription_dry_run(sub_id: int, as_of: date, billing_run: Billing
         already_exists = Invoice.objects.filter(subscription=sub, period_start=curr_start).exists()
         if already_exists:
             billing_run.skipped_count += 1
+            if hasattr(billing_run, 'preview_items'):
+                billing_run.preview_items.append(
+                    PreviewRunItem(
+                        subscription=sub,
+                        result=BillingItemResult.SKIPPED,
+                        error=f"Period starting {curr_start} already invoiced",
+                    )
+                )
         else:
-            build_invoice_draft(sub, curr_start)
+            draft = build_invoice_draft(sub, curr_start)
             billing_run.created_count += 1
+            if hasattr(billing_run, 'preview_items'):
+                billing_run.preview_items.append(
+                    PreviewRunItem(
+                        subscription=sub,
+                        result=BillingItemResult.CREATED,
+                        error=f"Period {curr_start} to {draft.period_end} (Est. Total: ₹{draft.total})",
+                    )
+                )
 
         periods_billed += 1
         curr_start = compute_period_start(anchor, periods_billed, plan.interval, plan.interval_count)

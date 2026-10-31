@@ -184,3 +184,44 @@ class SubscriptionsAndStaffTests(TestCase):
         self.client.force_login(other_user)
         resp = self.client.get(f"/invoices/{inv.number}/print/")
         self.assertEqual(resp.status_code, 403)
+
+    def test_generate_invoice_directly_from_subscription(self):
+        """Staff can generate an invoice directly from an active subscription."""
+        sub = lifecycle.create_subscription(
+            customer=self.customer,
+            plan=self.plan,
+            start_date=datetime.date(2026, 1, 1),
+            user=self.staff,
+        )
+        SubscriptionLine.objects.create(
+            subscription=sub,
+            product=self.product,
+            quantity=2,
+            unit_price=self.product.sales_price,
+            tax_rate=Decimal("0.00"),
+        )
+        sub = lifecycle.to_quotation(sub, actor=self.staff)
+        sub = lifecycle.confirm(sub, actor=self.staff)
+        sub = lifecycle.activate(sub, actor=self.staff)
+
+        self.client.force_login(self.staff)
+        resp = self.client.post(f"/subscriptions/{sub.id}/generate_invoice/")
+        self.assertEqual(resp.status_code, 302)
+        inv = Invoice.objects.filter(subscription=sub).first()
+        self.assertIsNotNone(inv)
+        self.assertEqual(inv.subtotal, Decimal("100.00"))
+        self.assertIn(str(inv.id), resp.url)
+
+    def test_staff_can_access_billing_run_and_coverage(self):
+        """Staff members can view and run the billing engine and check coverage."""
+        self.client.force_login(self.staff)
+
+        resp_run = self.client.get("/billing/run/")
+        self.assertEqual(resp_run.status_code, 200)
+
+        resp_post = self.client.post("/billing/run/", {"action": "preview", "as_of": "2026-03-01"})
+        self.assertEqual(resp_post.status_code, 200)
+        self.assertContains(resp_post, "Run Results")
+
+        resp_cov = self.client.get("/billing/coverage/")
+        self.assertEqual(resp_cov.status_code, 200)

@@ -86,6 +86,15 @@
         </form>
       {% endif %}
 
+      {% if "generate_invoice" in allowed_actions %}
+        <form method="post" action="/subscriptions/{{ subscription.id }}/generate_invoice/" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-plus me-1"></i>Generate Invoice Now
+          </button>
+        </form>
+      {% endif %}
+
       {% if "close" in allowed_actions %}
         <form method="post" action="/subscriptions/{{ subscription.id }}/close/" class="d-inline">
           {% csrf_token %}
