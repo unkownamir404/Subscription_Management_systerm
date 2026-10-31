@@ -61,8 +61,21 @@
           <input type="date" name="date_to" class="form-control form-control-sm" value="{{ filters.date_to }}">
         </div>
 
+        <!-- Sort -->
+        <div class="col-6 col-md-2 col-lg-2">
+          <label class="form-label small text-muted mb-1">Sort By</label>
+          <select name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="date_desc" {% if filters.sort == 'date_desc' or not filters.sort %}selected{% endif %}>Date (Newest)</option>
+            <option value="date_asc" {% if filters.sort == 'date_asc' %}selected{% endif %}>Date (Oldest)</option>
+            <option value="due_asc" {% if filters.sort == 'due_asc' %}selected{% endif %}>Due Date (Earliest)</option>
+            <option value="amount_desc" {% if filters.sort == 'amount_desc' %}selected{% endif %}>Amount (High–Low)</option>
+            <option value="amount_asc" {% if filters.sort == 'amount_asc' %}selected{% endif %}>Amount (Low–High)</option>
+            <option value="customer_asc" {% if filters.sort == 'customer_asc' %}selected{% endif %}>Customer (A–Z)</option>
+          </select>
+        </div>
+
         <!-- Actions -->
-        <div class="col-6 col-md-1 col-lg-3 d-flex gap-2">
+        <div class="col-6 col-md-1 col-lg-1 d-flex gap-1 align-self-end">
           <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
             <i class="bi bi-funnel me-1"></i>Filter
           </button>

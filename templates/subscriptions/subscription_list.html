@@ -34,7 +34,7 @@
     <div class="card-body p-3">
       <form method="get" class="row g-2 align-items-center">
         <!-- Status Filter -->
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
           <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
             <option value="">All Statuses</option>
             {% for code, label in status_choices %}
@@ -44,18 +44,41 @@
           </select>
         </div>
 
+        <!-- Plan Filter -->
+        <div class="col-12 col-md-2">
+          <select name="plan" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All Plans</option>
+            {% for p in plans %}
+              <option value="{{ p.id }}" {% if current_plan == p.id|stringformat:"i" %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Sort Option -->
+        <div class="col-12 col-md-2">
+          <select name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Sort: Newest</option>
+            <option value="date_desc" {% if current_sort == 'date_desc' %}selected{% endif %}>Date (Newest)</option>
+            <option value="date_asc" {% if current_sort == 'date_asc' %}selected{% endif %}>Date (Oldest)</option>
+            <option value="customer_asc" {% if current_sort == 'customer_asc' %}selected{% endif %}>Customer (A–Z)</option>
+            <option value="customer_desc" {% if current_sort == 'customer_desc' %}selected{% endif %}>Customer (Z–A)</option>
+            <option value="amount_desc" {% if current_sort == 'amount_desc' %}selected{% endif %}>Price (High–Low)</option>
+            <option value="amount_asc" {% if current_sort == 'amount_asc' %}selected{% endif %}>Price (Low–High)</option>
+          </select>
+        </div>
+
         <!-- Search Input -->
-        <div class="col-12 col-md-7">
+        <div class="col-12 col-md-4">
           <div class="input-group input-group-sm">
             <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" name="q" class="form-control" placeholder="Search by SUB-#, customer name, email..." value="{{ search_query }}">
+            <input type="text" name="q" class="form-control" placeholder="Search SUB-#, customer, email..." value="{{ search_query }}">
           </div>
         </div>
 
         <!-- Submit & Clear Buttons -->
         <div class="col-12 col-md-2 d-flex gap-1">
           <button type="submit" class="btn btn-primary btn-sm w-100">Filter</button>
-          {% if current_status or search_query %}
+          {% if current_status or current_plan or current_sort or search_query %}
             <a href="/subscriptions/" class="btn btn-outline-secondary btn-sm" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
           {% endif %}
         </div>

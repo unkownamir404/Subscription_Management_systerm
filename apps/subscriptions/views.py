@@ -29,6 +29,7 @@ from apps.subscriptions.models import (
     SubscriptionStatus,
 )
 from apps.subscriptions.services import lifecycle
+from apps.catalog.models import Plan
 
 
 class SubscriptionListView(RoleRequiredMixin, ListView):
@@ -54,6 +55,10 @@ class SubscriptionListView(RoleRequiredMixin, ListView):
         elif status == "paused":
             qs = qs.filter(paused_at__isnull=False)
 
+        plan_id = self.request.GET.get("plan", "").strip()
+        if plan_id:
+            qs = qs.filter(plan_id=plan_id)
+
         q = (self.request.GET.get("q") or self.request.GET.get("customer", "")).strip()
         if q:
             qs = qs.filter(
@@ -62,12 +67,26 @@ class SubscriptionListView(RoleRequiredMixin, ListView):
                 | Q(customer__user__email__icontains=q)
             )
 
-        return qs
+        # Sorting support: date, customer, amount
+        sort = self.request.GET.get("sort", "-id").strip()
+        sort_map = {
+            "date_asc": "start_date",
+            "date_desc": "-start_date",
+            "customer_asc": "customer__name",
+            "customer_desc": "-customer__name",
+            "amount_asc": "plan__price",
+            "amount_desc": "-plan__price",
+        }
+        order_field = sort_map.get(sort, "-id")
+        return qs.order_by(order_field)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["status_choices"] = SubscriptionStatus.choices
         ctx["current_status"] = self.request.GET.get("status", "")
+        ctx["current_plan"] = self.request.GET.get("plan", "")
+        ctx["current_sort"] = self.request.GET.get("sort", "")
+        ctx["plans"] = Plan.objects.all().order_by("name")
         ctx["search_query"] = self.request.GET.get("q") or self.request.GET.get("customer", "")
         return ctx
 

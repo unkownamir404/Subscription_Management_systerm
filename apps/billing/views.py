@@ -59,7 +59,19 @@ class InvoiceListView(RoleRequiredMixin, ListView):
                 Q(number__icontains=customer_q)
             )
 
-        return qs
+        sort = self.request.GET.get("sort", "-invoice_date").strip()
+        sort_map = {
+            "date_asc": "invoice_date",
+            "date_desc": "-invoice_date",
+            "due_asc": "due_date",
+            "due_desc": "-due_date",
+            "customer_asc": "customer__name",
+            "customer_desc": "-customer__name",
+            "amount_asc": "total",
+            "amount_desc": "-total",
+        }
+        order_field = sort_map.get(sort, "-invoice_date")
+        return qs.order_by(order_field, "-id")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -69,6 +81,7 @@ class InvoiceListView(RoleRequiredMixin, ListView):
             "status": self.request.GET.get("status", ""),
             "date_from": self.request.GET.get("date_from", ""),
             "date_to": self.request.GET.get("date_to", ""),
+            "sort": self.request.GET.get("sort", ""),
             "customer": self.request.GET.get("customer") or self.request.GET.get("q", ""),
             "q": self.request.GET.get("customer") or self.request.GET.get("q", ""),
         }
